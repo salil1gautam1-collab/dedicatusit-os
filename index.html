@@ -1,0 +1,1059 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>DedicatusIT — Daily Operating System</title>
+<meta name="description" content="A daily and weekly cockpit for the DedicatusIT operating laws." />
+
+<!-- PWA / iPhone home screen -->
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#14463A" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="DedicatusIT" />
+
+<style>
+  :root{
+    --paper:#F6F5F2;
+    --surface:#FFFFFF;
+    --ink:#1A1D1A;
+    --green:#14463A;
+    --green-2:#1F5C46;
+    --green-soft:#E4EDE8;
+    --amber:#C97B2C;
+    --amber-soft:#F4E6D4;
+    --muted:#8A8F88;
+    --line:#E4E2DC;
+    --line-2:#EDEBE5;
+    --do:#1F5C46;
+    --defer:#C97B2C;
+    --drop:#9A4A3C;
+    --serif:'Iowan Old Style','Palatino Linotype','Palatino',Georgia,'Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 1px 2px rgba(26,29,26,.04), 0 8px 24px rgba(26,29,26,.05);
+    --maxw:640px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .fade{animation:fade .35s ease both}
+    @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 18px}
+
+  /* ---------- Header ---------- */
+  header.top{
+    position:sticky;top:0;z-index:30;
+    background:rgba(246,245,242,.86);
+    backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid var(--line);
+    padding-top:env(safe-area-inset-top);
+  }
+  .top-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 10px}
+  .mark{display:flex;align-items:center;gap:10px;min-width:0}
+  .mark .glyph{
+    width:30px;height:30px;border-radius:8px;flex:0 0 auto;
+    background:var(--green);display:grid;place-items:center;
+  }
+  .mark .glyph svg{width:18px;height:18px}
+  .mark .name{font-weight:700;font-size:14px;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mark .name small{display:block;font-weight:500;color:var(--muted);font-size:11px;letter-spacing:.04em}
+  .sync{
+    appearance:none;border:1px solid var(--line);background:var(--surface);
+    color:var(--muted);font-family:var(--sans);font-size:11.5px;font-weight:600;
+    padding:7px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:7px;letter-spacing:.02em;
+  }
+  .sync .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+  .sync.ok{color:var(--green-2);border-color:var(--green-soft);background:#fff}
+  .sync.ok .dot{background:var(--green-2)}
+  .sync.warn .dot{background:var(--amber)}
+  .sync.busy .dot{background:var(--amber);animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.3}}
+
+  /* ---------- North Star ---------- */
+  .northstar{padding:12px 0 14px}
+  .ns-label{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+  .ns-list{display:flex;flex-direction:column;gap:6px}
+  .ns-item{display:flex;gap:10px;align-items:baseline;font-size:13.5px}
+  .ns-item .n{font-family:var(--serif);font-style:italic;color:var(--green-2);font-size:15px;width:16px;flex:0 0 auto}
+  .ns-item .t{color:#33392f}
+
+  /* ---------- Views ---------- */
+  main.wrap{padding:6px 18px calc(120px + env(safe-area-inset-bottom))}
+  .view{display:none}
+  .view.active{display:block}
+
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:16px;margin:14px 0;box-shadow:var(--shadow);
+  }
+  .card.flat{box-shadow:none}
+  .eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .h{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:-.01em;margin:3px 0 2px;line-height:1.2}
+  .sub{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+  .law-quote{font-family:var(--serif);font-style:italic;color:var(--green-2);font-size:13px;margin-top:2px}
+
+  .datehead{display:flex;align-items:baseline;justify-content:space-between;margin:16px 0 2px;gap:10px}
+  .datehead .d-big{font-family:var(--serif);font-size:22px;font-weight:600}
+  .datehead .d-sub{color:var(--muted);font-size:12px}
+  .nav-mini{display:inline-flex;gap:6px}
+  .nav-mini button{
+    width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:#fff;
+    color:var(--ink);cursor:pointer;font-size:15px;line-height:1;display:grid;place-items:center
+  }
+  .nav-mini button[disabled]{opacity:.35;cursor:default}
+  .today-pill{font-size:11px;color:var(--green-2);border:1px solid var(--green-soft);background:#fff;border-radius:999px;padding:3px 9px;font-weight:600;cursor:pointer}
+
+  /* inputs */
+  label.fld{display:block;margin:0 0 10px}
+  label.fld:last-child{margin-bottom:0}
+  .lab{font-size:12px;color:#4a4f47;font-weight:600;margin-bottom:5px;display:block}
+  input[type=text], textarea{
+    width:100%;font-family:var(--sans);font-size:14px;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 11px;
+    resize:vertical;line-height:1.4;
+  }
+  input[type=text]::placeholder, textarea::placeholder{color:#b7b9b2}
+  input[type=text]:focus, textarea:focus{outline:none;border-color:var(--green-2);box-shadow:0 0 0 3px var(--green-soft)}
+  textarea{min-height:64px}
+
+  .pareto-row{display:flex;gap:9px;align-items:center;margin-bottom:9px}
+  .pareto-row .rank{font-family:var(--serif);font-style:italic;color:var(--green-2);width:18px;flex:0 0 auto;text-align:center;font-size:15px}
+  .pareto-row input{margin:0}
+
+  /* compounding habits */
+  .habit{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line-2)}
+  .habit:first-of-type{border-top:none}
+  .check{
+    width:26px;height:26px;border-radius:8px;border:1.5px solid var(--line);background:#fff;flex:0 0 auto;
+    cursor:pointer;display:grid;place-items:center;margin-top:1px;transition:background .12s,border-color .12s
+  }
+  .check svg{width:15px;height:15px;opacity:0;transform:scale(.6);transition:opacity .12s,transform .12s}
+  .check.on{background:var(--green);border-color:var(--green)}
+  .check.on svg{opacity:1;transform:none}
+  .habit-body{flex:1;min-width:0}
+  .habit-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .habit-title{font-size:13.5px;font-weight:600}
+  .habit-sub{font-size:11.5px;color:var(--muted)}
+  .streak{display:inline-flex;align-items:baseline;gap:4px;flex:0 0 auto}
+  .streak .num{font-family:var(--serif);font-weight:700;font-size:20px;color:var(--amber);line-height:1}
+  .streak .num.zero{color:var(--line)}
+  .streak .unit{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .habit input{margin-top:8px}
+
+  /* segmented yes/no */
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{appearance:none;border:none;background:#fff;font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--muted);padding:8px 16px;cursor:pointer}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--green);color:#fff}
+  .seg button.on.neg{background:var(--amber)}
+
+  .tally{display:flex;align-items:center;gap:14px;margin-top:4px}
+  .tally .count{font-family:var(--serif);font-weight:700;font-size:30px;color:var(--green-2);min-width:42px;text-align:center}
+  .tally .marks{flex:1;min-height:26px;display:flex;flex-wrap:wrap;gap:5px;align-content:center}
+  .tally .marks i{display:block;width:3px;height:22px;background:var(--green-2);border-radius:2px;transform:rotate(-8deg)}
+  .tally .marks i.fifth{transform:rotate(58deg);height:30px;margin:0 8px 0 -10px;opacity:.85}
+  .stepper{display:inline-flex;gap:8px}
+  .stepper button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:18px;cursor:pointer;color:var(--ink)}
+
+  /* problems (kidlin) */
+  .problem{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fcfcfb}
+  .problem .grid{display:flex;flex-direction:column;gap:8px}
+  .problem .rm{float:right;border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px}
+  .addbtn{appearance:none;border:1px dashed var(--line);background:#fff;border-radius:10px;padding:10px;width:100%;
+    color:var(--green-2);font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans)}
+  .addbtn:hover{border-color:var(--green-2)}
+
+  /* idea filter */
+  .filter-q{padding:13px 0;border-top:1px solid var(--line-2)}
+  .filter-q:first-child{border-top:none;padding-top:4px}
+  .filter-q .q{font-size:13.5px;font-weight:600;margin-bottom:7px}
+  .filter-q .law{font-size:11px;color:var(--muted);font-style:italic;font-family:var(--serif)}
+  .verdict{margin-top:14px;border-radius:12px;padding:14px;text-align:center;display:none}
+  .verdict.show{display:block}
+  .verdict .v{font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:.01em}
+  .verdict .why{font-size:12.5px;margin-top:4px;opacity:.9}
+  .verdict.do{background:var(--green-soft);color:var(--green)}
+  .verdict.defer{background:var(--amber-soft);color:#8a5418}
+  .verdict.drop{background:#f3e2df;color:var(--drop)}
+  .saved-idea{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line-2)}
+  .saved-idea .tag{font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:999px;flex:0 0 auto;margin-top:1px}
+  .tag.do{background:var(--green-soft);color:var(--green)}
+  .tag.defer{background:var(--amber-soft);color:#8a5418}
+  .tag.drop{background:#f3e2df;color:var(--drop)}
+  .saved-idea .txt{font-size:13px;flex:1}
+  .saved-idea .txt small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .saved-idea .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px}
+
+  /* laws */
+  .law-item{padding:12px 0;border-top:1px solid var(--line-2);display:flex;gap:12px}
+  .law-item:first-child{border-top:none}
+  .law-item .ix{font-family:var(--serif);font-style:italic;color:var(--amber);font-size:15px;width:22px;flex:0 0 auto}
+  .law-item .ln{font-weight:600;font-size:13.5px}
+  .law-item .ld{font-size:12.5px;color:#54594f;margin-top:2px}
+
+  /* history */
+  .hist-grid{display:flex;gap:6px;margin-top:6px;overflow-x:auto;padding-bottom:4px}
+  .hist-day{flex:0 0 auto;width:62px;text-align:center}
+  .hist-day .dl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .hist-day .dn{font-size:12px;font-weight:600;margin-bottom:5px}
+  .hist-day .cells{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+  .hist-day .cells span{height:13px;border-radius:3px;background:var(--line-2)}
+  .hist-day .cells span.on{background:var(--green-2)}
+  .hist-day.istoday .dn{color:var(--amber)}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  .wk-hist{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .wk-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;padding:8px 0;border-top:1px solid var(--line-2)}
+  .wk-row:first-child{border-top:none}
+  .wk-row .wk{color:var(--muted);font-weight:600}
+  .wk-row .bar{flex:1;height:8px;border-radius:4px;background:var(--line-2);overflow:hidden;margin:0 4px}
+  .wk-row .bar i{display:block;height:100%;background:var(--green-2)}
+  .wk-row .v{font-weight:700;color:var(--green-2);min-width:18px;text-align:right}
+
+  /* bottom tabs */
+  nav.tabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tabs-inner{max-width:var(--maxw);margin:0 auto;display:flex}
+  .tab{flex:1;appearance:none;border:none;background:none;padding:9px 4px 8px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-family:var(--sans)}
+  .tab svg{width:21px;height:21px}
+  .tab span{font-size:10px;font-weight:600;letter-spacing:.02em}
+  .tab.on{color:var(--green)}
+  .tab.on .ind{position:absolute}
+
+  .empty{color:var(--muted);font-size:12.5px;font-style:italic;padding:6px 0}
+  details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary .chev{transition:transform .2s;color:var(--muted)}
+  details.fold[open]>summary .chev{transform:rotate(90deg)}
+
+  .row-split{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .ghost{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;
+    font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
+  .ghost.primary{background:var(--green);color:#fff;border-color:var(--green)}
+  .saved-tick{font-size:11px;color:var(--green-2);opacity:0;transition:opacity .2s}
+  .saved-tick.show{opacity:1}
+
+  /* sync sheet */
+  .sheet-bg{position:fixed;inset:0;background:rgba(26,29,26,.4);z-index:50;display:none;align-items:flex-end;justify-content:center}
+  .sheet-bg.show{display:flex}
+  .sheet{background:var(--surface);width:100%;max-width:var(--maxw);border-radius:18px 18px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.15)}
+  .sheet h3{font-family:var(--serif);font-size:18px;margin:0 0 4px}
+  .sheet p{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+  .sheet .opt{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-top:1px solid var(--line-2)}
+  .sheet .opt:first-of-type{border-top:none}
+  .sheet .opt .oi{font-size:13.5px;font-weight:600}
+  .sheet .opt .od{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .sheet .opt .actions{margin-left:auto;display:flex;gap:8px;flex:0 0 auto}
+  .closex{float:right;border:none;background:none;font-size:20px;color:var(--muted);cursor:pointer;line-height:1}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="mark">
+        <div class="glyph" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="14" width="3.4" height="6" rx="1.2" fill="#F6F5F2"/><rect x="10.3" y="10" width="3.4" height="10" rx="1.2" fill="#F6F5F2"/><rect x="16.6" y="5.5" width="3.4" height="14.5" rx="1.2" fill="#F6F5F2"/><circle cx="20.4" cy="4" r="2" fill="#C97B2C"/></svg>
+        </div>
+        <div class="name">DedicatusIT<small>Daily Operating System</small></div>
+      </div>
+      <button class="sync" id="syncBtn" title="Sync &amp; backup">
+        <span class="dot"></span><span id="syncLabel">Local</span>
+      </button>
+    </div>
+    <div class="northstar">
+      <div class="ns-label">North Star — everything serves these</div>
+      <div class="ns-list">
+        <div class="ns-item"><span class="n">i</span><span class="t">Increase quality MSP conversations.</span></div>
+        <div class="ns-item"><span class="n">ii</span><span class="t">Convert conversations into repeatable customer success stories.</span></div>
+        <div class="ns-item"><span class="n">iii</span><span class="t">Build a system that consistently generates trust and familiarity.</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ============ TODAY ============ -->
+  <section class="view active" id="view-today">
+    <div class="datehead">
+      <div>
+        <div class="d-big" id="dayBig">Today</div>
+        <div class="d-sub" id="daySub"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="today-pill" id="jumpToday" style="display:none">Today</button>
+        <div class="nav-mini">
+          <button id="dayPrev" aria-label="Previous day">‹</button>
+          <button id="dayNext" aria-label="Next day">›</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Pareto · the 80/20 cut</div>
+      <div class="h">If you could only do three things today</div>
+      <div class="sub">— that directly increase revenue, what would they be?</div>
+      <div style="margin-top:12px" id="paretoToday"></div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Compounding · daily marks</div>
+      <div class="h">The four that compound</div>
+      <div class="law-quote">Invisible for months. Obvious after years.</div>
+      <div style="margin-top:6px" id="habits"></div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Founder Leverage</div>
+      <div class="h">Was today high-leverage?</div>
+      <div class="sub">Did your top 3 fall into sales, partnerships, strategy, recruiting, or key customer relationships?</div>
+      <div style="margin:12px 0" class="seg" id="leverageSeg">
+        <button data-v="yes">Yes</button>
+        <button data-v="no" class="neg-target">No</button>
+      </div>
+      <label class="fld" id="delegateWrap" style="display:none">
+        <span class="lab">If not — what low-leverage work should you delegate or drop?</span>
+        <input type="text" id="delegateNote" placeholder="e.g. routine reporting → assistant" />
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">End of day</div>
+      <div class="h">What moved a priority forward today?</div>
+      <input type="text" id="reflection" style="margin-top:10px" placeholder="One honest line." />
+    </div>
+
+    <div class="card flat">
+      <details class="fold" id="histFold">
+        <summary><span class="eyebrow">Last 7 days · watch it accumulate</span><span class="chev">›</span></summary>
+        <div id="history7" class="hist-grid"></div>
+        <div class="legend">
+          <span><i style="background:var(--green-2)"></i> Insight</span>
+          <span><i style="background:var(--green-2)"></i> Publish</span>
+          <span><i style="background:var(--green-2)"></i> Process</span>
+          <span><i style="background:var(--green-2)"></i> Relationship</span>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ WEEK ============ -->
+  <section class="view" id="view-week">
+    <div class="datehead">
+      <div>
+        <div class="d-big" id="weekBig">This week</div>
+        <div class="d-sub" id="weekSub"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="today-pill" id="jumpWeek" style="display:none">This week</button>
+        <div class="nav-mini">
+          <button id="weekPrev" aria-label="Previous week">‹</button>
+          <button id="weekNext" aria-label="Next week">›</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Pareto · the week</div>
+      <div class="h">Three highest-impact actions</div>
+      <div class="sub">The moves that, if done, make the rest of the week matter less.</div>
+      <div style="margin-top:12px" id="paretoWeek"></div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Murphy's Law · assume failure</div>
+      <div class="h">What would hurt most if it broke?</div>
+      <div class="sub">Name the critical process this week — and your backup.</div>
+      <label class="fld" style="margin-top:11px">
+        <span class="lab">The fragile point</span>
+        <input type="text" id="murphyRisk" placeholder="e.g. single point of contact at our biggest prospect" />
+      </label>
+      <label class="fld">
+        <span class="lab">The backup</span>
+        <input type="text" id="murphyBackup" placeholder="e.g. build a second relationship inside the account" />
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Kidlin's Law · write it to solve it</div>
+      <div class="h">Problems, defined sharply</div>
+      <div class="law-quote">A clearly written problem is half solved.</div>
+      <div id="problems" style="margin-top:12px"></div>
+      <button class="addbtn" id="addProblem">+ Define a problem</button>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">The success-story engine</div>
+      <div class="h">Closer to a repeatable win?</div>
+      <div class="sub">Priority ii — progress toward a case study you can repeat.</div>
+      <label class="fld" style="margin-top:11px">
+        <span class="lab">This week's progress</span>
+        <textarea id="caseStudy" placeholder="Which account is closest to a written, repeatable success story — and what moved?"></textarea>
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Law of Familiarity · touchpoints</div>
+      <div class="h">How often did they see you?</div>
+      <div class="sub">LinkedIn posts, follow-ups, case studies shared. Familiarity, not virality.</div>
+      <div class="tally" style="margin-top:12px">
+        <div class="count" id="famCount">0</div>
+        <div class="marks" id="famMarks"></div>
+        <div class="stepper">
+          <button id="famMinus" aria-label="Remove one">–</button>
+          <button id="famPlus" aria-label="Add one">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card flat">
+      <details class="fold">
+        <summary><span class="eyebrow">Last 4 weeks · familiarity trend</span><span class="chev">›</span></summary>
+        <div id="weekHist" class="wk-hist"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ FILTER ============ -->
+  <section class="view" id="view-filter">
+    <div class="datehead"><div><div class="d-big">The Idea Filter</div><div class="d-sub">Run every new opportunity through the laws.</div></div></div>
+
+    <div class="card">
+      <label class="fld">
+        <span class="lab">The idea or opportunity</span>
+        <input type="text" id="ideaText" placeholder="e.g. add a managed-backup service line" />
+      </label>
+
+      <div class="filter-q">
+        <div class="q">Does this help us become the best solution for MSPs?</div>
+        <div class="law">Focus Law — most startups die from distraction, not competition.</div>
+        <div style="margin-top:8px" class="seg" data-filter="focus"><button data-v="yes">Yes</button><button data-v="no">No</button></div>
+      </div>
+
+      <div class="filter-q">
+        <div class="q">Will it help us acquire, retain, or expand MSP customers within 90 days?</div>
+        <div class="law">The 90-day filter.</div>
+        <div style="margin-top:8px" class="seg" data-filter="ninety"><button data-v="yes">Yes</button><button data-v="no">No</button></div>
+      </div>
+
+      <div class="filter-q">
+        <div class="q">Real problem, or imaginary one?</div>
+        <div class="law">Falkland's Law — if it doesn't need deciding today, don't force it.</div>
+        <div style="margin-top:8px" class="seg" data-filter="real"><button data-v="real">Real · act now</button><button data-v="imaginary">Imaginary · observe</button></div>
+      </div>
+
+      <div class="filter-q">
+        <div class="q">Am I selling a feature or an outcome?</div>
+        <div class="law">Customer Reality Law — MSPs buy lower cost, profit, faster tickets, retention, capacity.</div>
+        <input type="text" id="outcomeNote" style="margin-top:8px" placeholder="State it as an MSP outcome, not a feature." />
+      </div>
+
+      <div class="verdict" id="verdict">
+        <div class="v"></div><div class="why"></div>
+      </div>
+      <div class="row-split" style="margin-top:14px">
+        <button class="ghost" id="ideaReset">Clear</button>
+        <button class="ghost primary" id="ideaSave">Save verdict</button>
+      </div>
+    </div>
+
+    <div class="card flat">
+      <div class="eyebrow">Filed decisions</div>
+      <div id="savedIdeas" style="margin-top:6px"></div>
+    </div>
+  </section>
+
+  <!-- ============ LAWS ============ -->
+  <section class="view" id="view-laws">
+    <div class="datehead"><div><div class="d-big">The Operating Laws</div><div class="d-sub">The principle behind every prompt.</div></div></div>
+    <div class="card">
+      <div id="lawsList"></div>
+    </div>
+    <div class="card flat">
+      <div class="eyebrow">Three priorities, again</div>
+      <div class="h" style="margin-top:6px">Acquire · Retain · Expand</div>
+      <div class="sub">Whenever a new idea appears: will this directly help us acquire, retain, or expand MSP customers within 90 days? If not, defer it.</div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <div class="tabs-inner">
+    <button class="tab on" data-tab="today">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span>Today</span>
+    </button>
+    <button class="tab" data-tab="week">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+      <span>Week</span>
+    </button>
+    <button class="tab" data-tab="filter">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>
+      <span>Filter</span>
+    </button>
+    <button class="tab" data-tab="laws">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 7l7-3 7 3M5 7l-2 6a3 3 0 006 0L7 7m10 0l-2 6a3 3 0 006 0l-2-6"/></svg>
+      <span>Laws</span>
+    </button>
+  </div>
+</nav>
+
+<!-- Sync / backup sheet -->
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet" role="dialog" aria-label="Sync and backup">
+    <button class="closex" id="sheetClose" aria-label="Close">×</button>
+    <h3>Sync &amp; backup</h3>
+    <p>Your data lives on this device. Use one of these to share it between your laptop and iPhone.</p>
+
+    <div class="opt">
+      <div>
+        <div class="oi">OneDrive auto-sync <span id="odState" style="color:var(--muted);font-weight:500">· not set up</span></div>
+        <div class="od" id="odDesc">Add your Microsoft app ID once (see README) to sync automatically across devices.</div>
+      </div>
+      <div class="actions"><button class="ghost" id="odBtn">Connect</button></div>
+    </div>
+
+    <div class="opt">
+      <div>
+        <div class="oi">Manual backup</div>
+        <div class="od">No setup. Save a file to OneDrive, open it on your other device.</div>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="exportBtn">Export</button>
+        <button class="ghost" id="importBtn">Import</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   DedicatusIT — Daily Operating System
+   Local-first. Optional OneDrive sync. Zero backend.
+   ========================================================================= */
+
+/* ---- CONFIG: fill this in ONCE to enable automatic OneDrive sync ---------
+   Leave clientId empty to run fully local (manual backup still works).
+   Steps are in README.md. */
+const CONFIG = {
+  clientId: "",                                   // <-- paste your Azure app (client) ID here
+  redirectUri: window.location.origin + window.location.pathname,
+  scopes: ["Files.ReadWrite.AppFolder", "User.Read"]
+};
+/* ------------------------------------------------------------------------- */
+
+const LAWS = [
+  ["Pareto (80/20)", "The few right actions create most of the value. Find them, do them first."],
+  ["Law of Familiarity", "Trust comes from repeated exposure. Be seen, consistently, by the same people."],
+  ["Murphy's Law", "Things break. Name the failure points and build the backup before you need it."],
+  ["Law of Compounding", "Small repeated actions become massive advantages. Show up daily."],
+  ["Falkland's Law", "If a decision doesn't need making today, don't force it."],
+  ["Wilson's Law", "Knowledge creates value; value creates money. Be the expert in your niche."],
+  ["Kidlin's Law", "A clearly written problem is half solved. Write it before you debate it."],
+  ["Founder Leverage", "Spend your time only where you create unique value. Delegate the rest."],
+  ["Focus Law", "Startups die from distraction, not competition. Guard the main thing."],
+  ["Customer Reality", "MSPs don't buy services — they buy outcomes. Always translate features into results."]
+];
+
+const HABITS = [
+  ["insight",      "Learn one MSP insight",      "What did you learn?",        "Capture the insight…"],
+  ["publish",      "Publish one useful thought", "Where, and what?",           "e.g. LinkedIn — pricing for MSPs"],
+  ["process",      "Improve one process",        "Which one?",                 "The process you sharpened…"],
+  ["relationship", "Deepen one relationship",    "With whom?",                 "Who did you invest in?"]
+];
+
+/* ---------------- date helpers ---------------- */
+const pad = n => String(n).padStart(2,"0");
+function dayKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function parseDay(k){ const [y,m,dd]=k.split("-").map(Number); return new Date(y,m-1,dd); }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function isoWeek(d){
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=(t.getUTCDay()+6)%7; t.setUTCDate(t.getUTCDate()-day+3);
+  const firstThu=new Date(Date.UTC(t.getUTCFullYear(),0,4));
+  const fday=(firstThu.getUTCDay()+6)%7; firstThu.setUTCDate(firstThu.getUTCDate()-fday+3);
+  const week=1+Math.round((t-firstThu)/(7*864e5));
+  return {year:t.getUTCFullYear(), week};
+}
+function weekKey(d){ const {year,week}=isoWeek(d); return year+"-W"+pad(week); }
+function weekKeyToMonday(k){
+  const [y,w]=k.split("-W").map(Number);
+  const simple=new Date(Date.UTC(y,0,1+(w-1)*7));
+  const dow=(simple.getUTCDay()+6)%7;
+  const mon=new Date(simple); mon.setUTCDate(simple.getUTCDate()-dow);
+  return new Date(mon.getUTCFullYear(),mon.getUTCMonth(),mon.getUTCDate());
+}
+function weekRangeLabel(k){
+  const mon=weekKeyToMonday(k); const sun=addDays(mon,6);
+  const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return m[mon.getMonth()]+" "+mon.getDate()+" – "+m[sun.getMonth()]+" "+sun.getDate();
+}
+const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DOWfull=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+/* ---------------- state ---------------- */
+const LS_KEY = "dedicatusit.os.v1";
+let state = { updatedAt:null, days:{}, weeks:{}, ideas:[] };
+let cursorDay = new Date();      // which day is shown
+let cursorWeek = new Date();     // which week is shown
+let saveTimer=null, odPushTimer=null;
+
+function blankDay(){
+  return { pareto:["","",""],
+           habits:{insight:{done:false,note:""},publish:{done:false,note:""},process:{done:false,note:""},relationship:{done:false,note:""}},
+           leverage:null, delegate:"", reflection:"" };
+}
+function blankWeek(){
+  return { pareto:["","",""], murphyRisk:"", murphyBackup:"", problems:[], caseStudy:"", familiarity:0 };
+}
+function getDay(k){ if(!state.days[k]) state.days[k]=blankDay(); return state.days[k]; }
+function getWeek(k){ if(!state.weeks[k]) state.weeks[k]=blankWeek(); return state.weeks[k]; }
+
+function load(){
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw) state=Object.assign(state,JSON.parse(raw)); }catch(e){}
+}
+function touch(){ state.updatedAt=new Date().toISOString(); }
+function save(){
+  touch();
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+  if(OD.ready && OD.account){ clearTimeout(odPushTimer); odPushTimer=setTimeout(()=>OD.push(),1500); setSync("busy","Saving…"); }
+  else { localSavedFlash(); }
+}
+let localFlashTimer=null;
+function localSavedFlash(){
+  if(CONFIG.clientId) return;            // OneDrive mode shows its own status instead
+  setSync("ok","Saved");
+  clearTimeout(localFlashTimer);
+  localFlashTimer=setTimeout(()=>setSync("","Local"),1100);
+}
+
+/* ---------------- merge (last-write-wins by updatedAt) ---------------- */
+function mergeRemote(remote){
+  if(!remote) return;
+  const rT=remote.updatedAt? Date.parse(remote.updatedAt):0;
+  const lT=state.updatedAt? Date.parse(state.updatedAt):0;
+  if(rT>lT){ state=remote; localStorage.setItem(LS_KEY,JSON.stringify(state)); renderAll(); }
+}
+
+/* =========================================================================
+   RENDERING
+   ========================================================================= */
+function renderAll(){ renderToday(); renderWeek(); renderFilter(); }
+
+/* ---- TODAY ---- */
+function renderToday(){
+  const k=dayKey(cursorDay);
+  const d=getDay(k);
+  const isToday = k===dayKey(new Date());
+  const future = cursorDay > new Date(new Date().toDateString());
+
+  document.getElementById("dayBig").textContent = isToday? "Today" : DOWfull[cursorDay.getDay()];
+  document.getElementById("daySub").textContent = MON[cursorDay.getMonth()]+" "+cursorDay.getDate()+", "+cursorDay.getFullYear();
+  document.getElementById("jumpToday").style.display = isToday? "none":"inline-block";
+  document.getElementById("dayNext").disabled = isToday;
+
+  // pareto
+  const pw=document.getElementById("paretoToday"); pw.innerHTML="";
+  ["1","2","3"].forEach((r,i)=>{
+    const row=document.createElement("div"); row.className="pareto-row";
+    row.innerHTML=`<span class="rank">${["i","ii","iii"][i]}</span>`;
+    const inp=document.createElement("input"); inp.type="text"; inp.value=d.pareto[i]||"";
+    inp.placeholder = i===0? "The one that matters most…" : "…";
+    inp.addEventListener("input",()=>{ d.pareto[i]=inp.value; save(); });
+    row.appendChild(inp); pw.appendChild(row);
+  });
+
+  // habits
+  const hb=document.getElementById("habits"); hb.innerHTML="";
+  HABITS.forEach(([id,title,sub,ph])=>{
+    const h=d.habits[id];
+    const streak=streakFor(id, cursorDay);
+    const el=document.createElement("div"); el.className="habit";
+    el.innerHTML=`
+      <div class="check ${h.done?'on':''}" role="checkbox" aria-checked="${h.done}" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F6F5F2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+      </div>
+      <div class="habit-body">
+        <div class="habit-top">
+          <div><div class="habit-title">${title}</div><div class="habit-sub">${sub}</div></div>
+          <div class="streak"><span class="num ${streak===0?'zero':''}">${streak}</span><span class="unit">day${streak===1?'':'s'}</span></div>
+        </div>
+      </div>`;
+    const chk=el.querySelector(".check");
+    const toggle=()=>{ h.done=!h.done; save(); renderToday(); renderHistory(); };
+    chk.addEventListener("click",toggle);
+    chk.addEventListener("keydown",e=>{ if(e.key===" "||e.key==="Enter"){e.preventDefault();toggle();}});
+    const note=document.createElement("input"); note.type="text"; note.placeholder=ph; note.value=h.note||"";
+    note.addEventListener("input",()=>{ h.note=note.value; save(); });
+    el.querySelector(".habit-body").appendChild(note);
+    hb.appendChild(el);
+  });
+
+  // leverage
+  document.querySelectorAll("#leverageSeg button").forEach(b=>{
+    b.classList.toggle("on", d.leverage===b.dataset.v);
+    b.classList.toggle("neg", b.dataset.v==="no");
+  });
+  document.getElementById("delegateWrap").style.display = d.leverage==="no" ? "block":"none";
+  document.getElementById("delegateNote").value = d.delegate||"";
+
+  // reflection
+  document.getElementById("reflection").value = d.reflection||"";
+
+  renderHistory();
+}
+
+function streakFor(id, fromDate){
+  let count=0; let cur=new Date(fromDate);
+  // only count up to today (don't count future)
+  const today=new Date(new Date().toDateString());
+  if(cur>today) cur=new Date(today);
+  while(true){
+    const k=dayKey(cur); const day=state.days[k];
+    if(day && day.habits[id] && day.habits[id].done){ count++; cur=addDays(cur,-1); }
+    else break;
+  }
+  return count;
+}
+
+function renderHistory(){
+  const box=document.getElementById("history7"); if(!box) return; box.innerHTML="";
+  const todayK=dayKey(new Date());
+  for(let i=6;i>=0;i--){
+    const dte=addDays(new Date(),-i); const k=dayKey(dte); const day=state.days[k];
+    const cell=document.createElement("div"); cell.className="hist-day"+(k===todayK?" istoday":"");
+    let cells="";
+    HABITS.forEach(([id])=>{ const on=day&&day.habits[id]&&day.habits[id].done; cells+=`<span class="${on?'on':''}"></span>`; });
+    cell.innerHTML=`<div class="dl">${DOW[(dte.getDay()+6)%7]}</div><div class="dn">${dte.getDate()}</div><div class="cells">${cells}</div>`;
+    box.appendChild(cell);
+  }
+}
+
+/* ---- WEEK ---- */
+function renderWeek(){
+  const k=weekKey(cursorWeek);
+  const w=getWeek(k);
+  const isThis = k===weekKey(new Date());
+  document.getElementById("weekBig").textContent = isThis? "This week" : "Week "+k.split("-W")[1];
+  document.getElementById("weekSub").textContent = weekRangeLabel(k);
+  document.getElementById("jumpWeek").style.display = isThis? "none":"inline-block";
+  document.getElementById("weekNext").disabled = isThis;
+
+  // pareto week
+  const pw=document.getElementById("paretoWeek"); pw.innerHTML="";
+  ["1","2","3"].forEach((r,i)=>{
+    const row=document.createElement("div"); row.className="pareto-row";
+    row.innerHTML=`<span class="rank">${["i","ii","iii"][i]}</span>`;
+    const inp=document.createElement("input"); inp.type="text"; inp.value=w.pareto[i]||""; inp.placeholder=i===0?"Highest-impact move…":"…";
+    inp.addEventListener("input",()=>{ w.pareto[i]=inp.value; save(); });
+    row.appendChild(inp); pw.appendChild(row);
+  });
+
+  document.getElementById("murphyRisk").value=w.murphyRisk||"";
+  document.getElementById("murphyBackup").value=w.murphyBackup||"";
+  document.getElementById("caseStudy").value=w.caseStudy||"";
+
+  renderProblems(w);
+  renderFamiliarity(w);
+  renderWeekHistory();
+}
+
+function renderProblems(w){
+  const box=document.getElementById("problems"); box.innerHTML="";
+  if(w.problems.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No problems defined yet. A vague worry becomes a solvable problem the moment you write it down.";
+    box.appendChild(e);
+  }
+  w.problems.forEach((p,idx)=>{
+    const el=document.createElement("div"); el.className="problem";
+    el.innerHTML=`<button class="rm" data-i="${idx}">remove</button><div class="grid">
+      <label class="fld" style="margin:0"><span class="lab">Problem</span><input type="text" data-f="problem" placeholder="Bad: &quot;We need more customers.&quot;"></label>
+      <label class="fld" style="margin:0"><span class="lab">Root cause</span><input type="text" data-f="root" placeholder="The real bottleneck — e.g. low outbound response rate."></label>
+      <label class="fld" style="margin:0"><span class="lab">Impact</span><input type="text" data-f="impact" placeholder="What it costs in revenue / time."></label>
+      <label class="fld" style="margin:0"><span class="lab">Success state</span><input type="text" data-f="success" placeholder="Good: &quot;Y qualified MSP convos/month, up from X.&quot;"></label>
+    </div>`;
+    el.querySelector("[data-f=problem]").value=p.problem||"";
+    el.querySelector("[data-f=root]").value=p.root||"";
+    el.querySelector("[data-f=impact]").value=p.impact||"";
+    el.querySelector("[data-f=success]").value=p.success||"";
+    el.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{ p[inp.dataset.f]=inp.value; save(); }));
+    el.querySelector(".rm").addEventListener("click",()=>{ w.problems.splice(idx,1); save(); renderProblems(w); });
+    box.appendChild(el);
+  });
+}
+
+function renderFamiliarity(w){
+  document.getElementById("famCount").textContent=w.familiarity||0;
+  const marks=document.getElementById("famMarks"); marks.innerHTML="";
+  const n=w.familiarity||0;
+  for(let i=0;i<n;i++){ const m=document.createElement("i"); if((i+1)%5===0) m.className="fifth"; marks.appendChild(m); }
+}
+
+function renderWeekHistory(){
+  const box=document.getElementById("weekHist"); box.innerHTML="";
+  let max=1;
+  const rows=[];
+  for(let i=3;i>=0;i--){
+    const mon=addDays(weekKeyToMonday(weekKey(cursorWeek)), -7*i);
+    const k=weekKey(mon); const w=state.weeks[k]; const v=w? (w.familiarity||0):0;
+    max=Math.max(max,v); rows.push([k,v]);
+  }
+  rows.forEach(([k,v])=>{
+    const row=document.createElement("div"); row.className="wk-row";
+    row.innerHTML=`<span class="wk">${k.split("-W")[1]? 'W'+k.split("-W")[1]:k}</span><span class="bar"><i style="width:${Math.round(v/max*100)}%"></i></span><span class="v">${v}</span>`;
+    box.appendChild(row);
+  });
+}
+
+/* ---- FILTER ---- */
+let filterAns={focus:null,ninety:null,real:null};
+function renderFilter(){ renderSavedIdeas(); }
+function computeVerdict(){
+  const {focus,ninety,real}=filterAns;
+  const v=document.getElementById("verdict");
+  if(focus===null||ninety===null||real===null){ v.className="verdict"; return null; }
+  let verdict, why, cls;
+  if(focus==="no" || ninety==="no"){
+    if(real==="imaginary"){ verdict="DROP"; cls="drop"; why="Off-mission and not pressing. Let it go — guard the main thing."; }
+    else { verdict="DEFER"; cls="defer"; why="It doesn't serve the 90-day priorities. Park it and revisit when it does."; }
+  } else {
+    if(real==="real"){ verdict="DO NOW"; cls="do"; why="On-mission, inside 90 days, and pressing. Move."; }
+    else { verdict="DEFER"; cls="defer"; why="Aligned, but not urgent. Observe — don't force the decision today."; }
+  }
+  v.className="verdict show "+cls;
+  v.querySelector(".v").textContent=verdict;
+  v.querySelector(".why").textContent=why;
+  return verdict;
+}
+function renderSavedIdeas(){
+  const box=document.getElementById("savedIdeas"); box.innerHTML="";
+  if(!state.ideas.length){ const e=document.createElement("div"); e.className="empty"; e.textContent="No decisions filed yet."; box.appendChild(e); return; }
+  state.ideas.slice().reverse().forEach(idea=>{
+    const cls=idea.verdict==="DO NOW"?"do":idea.verdict==="DEFER"?"defer":"drop";
+    const el=document.createElement("div"); el.className="saved-idea";
+    const date=new Date(idea.at);
+    el.innerHTML=`<span class="tag ${cls}">${idea.verdict}</span><div class="txt">${escapeHtml(idea.text||"(untitled idea)")}<small>${idea.outcome?escapeHtml(idea.outcome)+' · ':''}${MON[date.getMonth()].slice(0,3)} ${date.getDate()}</small></div><button class="x" data-id="${idea.id}">×</button>`;
+    el.querySelector(".x").addEventListener("click",()=>{ state.ideas=state.ideas.filter(x=>x.id!==idea.id); save(); renderSavedIdeas(); });
+    box.appendChild(el);
+  });
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---- LAWS ---- */
+function renderLaws(){
+  const box=document.getElementById("lawsList"); box.innerHTML="";
+  LAWS.forEach(([n,d],i)=>{
+    const el=document.createElement("div"); el.className="law-item";
+    el.innerHTML=`<span class="ix">${i+1}</span><div><div class="ln">${n}</div><div class="ld">${d}</div></div>`;
+    box.appendChild(el);
+  });
+}
+
+/* =========================================================================
+   EVENTS
+   ========================================================================= */
+function bind(){
+  // tabs
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+    t.classList.add("on");
+    const v=document.getElementById("view-"+t.dataset.tab);
+    v.classList.add("active"); v.classList.add("fade");
+    setTimeout(()=>v.classList.remove("fade"),400);
+    window.scrollTo({top:0,behavior:"instant"in window? "instant":"auto"});
+  }));
+
+  // day nav
+  document.getElementById("dayPrev").onclick=()=>{ cursorDay=addDays(cursorDay,-1); renderToday(); };
+  document.getElementById("dayNext").onclick=()=>{ if(dayKey(cursorDay)!==dayKey(new Date())){ cursorDay=addDays(cursorDay,1); renderToday(); } };
+  document.getElementById("jumpToday").onclick=()=>{ cursorDay=new Date(); renderToday(); };
+
+  // week nav
+  document.getElementById("weekPrev").onclick=()=>{ cursorWeek=addDays(cursorWeek,-7); renderWeek(); };
+  document.getElementById("weekNext").onclick=()=>{ if(weekKey(cursorWeek)!==weekKey(new Date())){ cursorWeek=addDays(cursorWeek,7); renderWeek(); } };
+  document.getElementById("jumpWeek").onclick=()=>{ cursorWeek=new Date(); renderWeek(); };
+
+  // leverage
+  document.querySelectorAll("#leverageSeg button").forEach(b=>b.addEventListener("click",()=>{
+    const d=getDay(dayKey(cursorDay)); d.leverage=b.dataset.v; save(); renderToday();
+  }));
+  document.getElementById("delegateNote").addEventListener("input",e=>{ getDay(dayKey(cursorDay)).delegate=e.target.value; save(); });
+  document.getElementById("reflection").addEventListener("input",e=>{ getDay(dayKey(cursorDay)).reflection=e.target.value; save(); });
+
+  // week fields
+  document.getElementById("murphyRisk").addEventListener("input",e=>{ getWeek(weekKey(cursorWeek)).murphyRisk=e.target.value; save(); });
+  document.getElementById("murphyBackup").addEventListener("input",e=>{ getWeek(weekKey(cursorWeek)).murphyBackup=e.target.value; save(); });
+  document.getElementById("caseStudy").addEventListener("input",e=>{ getWeek(weekKey(cursorWeek)).caseStudy=e.target.value; save(); });
+  document.getElementById("addProblem").onclick=()=>{ const w=getWeek(weekKey(cursorWeek)); w.problems.push({problem:"",root:"",impact:"",success:""}); save(); renderProblems(w); };
+  document.getElementById("famPlus").onclick=()=>{ const w=getWeek(weekKey(cursorWeek)); w.familiarity=(w.familiarity||0)+1; save(); renderFamiliarity(w); renderWeekHistory(); };
+  document.getElementById("famMinus").onclick=()=>{ const w=getWeek(weekKey(cursorWeek)); w.familiarity=Math.max(0,(w.familiarity||0)-1); save(); renderFamiliarity(w); renderWeekHistory(); };
+
+  // filter
+  document.querySelectorAll(".seg[data-filter]").forEach(seg=>{
+    seg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+      seg.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); filterAns[seg.dataset.filter]=b.dataset.v; computeVerdict();
+    }));
+  });
+  document.getElementById("ideaReset").onclick=()=>resetFilter();
+  document.getElementById("ideaSave").onclick=()=>{
+    const verdict=computeVerdict();
+    const text=document.getElementById("ideaText").value.trim();
+    if(!verdict){ alert("Answer the three questions first — the verdict needs them."); return; }
+    if(!text){ document.getElementById("ideaText").focus(); return; }
+    state.ideas.push({ id:Date.now()+"-"+Math.random().toString(36).slice(2,6), text, outcome:document.getElementById("outcomeNote").value.trim(), verdict, at:new Date().toISOString() });
+    save(); resetFilter(); renderSavedIdeas();
+  };
+
+  // sync sheet
+  const sheet=document.getElementById("sheetBg");
+  document.getElementById("syncBtn").onclick=()=>sheet.classList.add("show");
+  document.getElementById("sheetClose").onclick=()=>sheet.classList.remove("show");
+  sheet.addEventListener("click",e=>{ if(e.target===sheet) sheet.classList.remove("show"); });
+  document.getElementById("exportBtn").onclick=exportData;
+  document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+  document.getElementById("importFile").addEventListener("change",importData);
+  document.getElementById("odBtn").onclick=()=>OD.connectOrSync();
+}
+function resetFilter(){
+  filterAns={focus:null,ninety:null,real:null};
+  document.querySelectorAll(".seg[data-filter] button").forEach(b=>b.classList.remove("on"));
+  document.getElementById("ideaText").value=""; document.getElementById("outcomeNote").value="";
+  document.getElementById("verdict").className="verdict";
+}
+
+/* ---- manual backup ---- */
+function exportData(){
+  touch();
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="dedicatusit-os-"+dayKey(new Date())+".json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const incoming=JSON.parse(r.result);
+    if(!incoming || typeof incoming!=="object" || !("days" in incoming)){ alert("That doesn't look like a DedicatusIT backup file."); return; }
+    if(confirm("Import will replace the data on this device with the file's contents. Continue?")){
+      state=Object.assign({updatedAt:null,days:{},weeks:{},ideas:[]},incoming);
+      localStorage.setItem(LS_KEY,JSON.stringify(state));
+      renderAll(); document.getElementById("sheetBg").classList.remove("show");
+    }
+  }catch(err){ alert("Could not read that file."); } };
+  r.readAsText(file); e.target.value="";
+}
+
+/* ---- sync chip ---- */
+function setSync(kind,label){
+  const b=document.getElementById("syncBtn");
+  b.className="sync "+(kind||"");
+  document.getElementById("syncLabel").textContent=label;
+}
+
+/* =========================================================================
+   OneDrive sync (optional, lazy). No secrets. PKCE via MSAL.
+   ========================================================================= */
+const OD = {
+  ready:false, msal:null, account:null,
+  async init(){
+    if(!CONFIG.clientId){ setSync("","Local"); document.getElementById("odBtn").textContent="Set up"; return; }
+    try{
+      await loadScript("https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js");
+      this.msal=new msal.PublicClientApplication({
+        auth:{ clientId:CONFIG.clientId, authority:"https://login.microsoftonline.com/consumers", redirectUri:CONFIG.redirectUri },
+        cache:{ cacheLocation:"localStorage" }
+      });
+      await this.msal.initialize();
+      const res=await this.msal.handleRedirectPromise();
+      if(res&&res.account) this.account=res.account;
+      else { const all=this.msal.getAllAccounts(); if(all.length) this.account=all[0]; }
+      this.ready=true;
+      if(this.account){ setSync("ok","OneDrive"); document.getElementById("odBtn").textContent="Sync now"; document.getElementById("odState").textContent="· connected"; await this.pull(); }
+      else { setSync("warn","Connect"); document.getElementById("odBtn").textContent="Connect"; }
+    }catch(e){ console.warn("OneDrive init failed",e); setSync("warn","Offline"); }
+  },
+  async token(){
+    const req={scopes:CONFIG.scopes, account:this.account};
+    try{ return (await this.msal.acquireTokenSilent(req)).accessToken; }
+    catch(e){ const r=await this.msal.acquireTokenPopup(req); this.account=r.account; return r.accessToken; }
+  },
+  async connectOrSync(){
+    if(!CONFIG.clientId){ alert("Add your Microsoft app (client) ID in the CONFIG block first — see README.md."); return; }
+    if(!this.ready){ await this.init(); }
+    if(!this.account){
+      try{ const r=await this.msal.loginPopup({scopes:CONFIG.scopes}); this.account=r.account;
+        setSync("ok","OneDrive"); document.getElementById("odState").textContent="· connected"; document.getElementById("odBtn").textContent="Sync now";
+        await this.pull(); await this.push();
+      }catch(e){ alert("Sign-in was cancelled or blocked."); }
+    } else { await this.pull(); await this.push(); }
+  },
+  async pull(){
+    try{
+      const t=await this.token();
+      const res=await fetch("https://graph.microsoft.com/v1.0/me/drive/special/approot:/data.json:/content",{headers:{Authorization:"Bearer "+t}});
+      if(res.status===200){ const remote=await res.json(); mergeRemote(remote); }
+      setSync("ok","OneDrive");
+    }catch(e){ console.warn("pull failed",e); setSync("warn","Offline"); }
+  },
+  async push(){
+    try{
+      const t=await this.token();
+      await fetch("https://graph.microsoft.com/v1.0/me/drive/special/approot:/data.json:/content",{
+        method:"PUT", headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"}, body:JSON.stringify(state)
+      });
+      setSync("ok","OneDrive");
+    }catch(e){ console.warn("push failed",e); setSync("warn","Offline"); }
+  }
+};
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+function newDayCheck(){
+  // if the visible day/week is "today/this week" anchored, keep it fresh across midnight
+}
+load();
+renderLaws();
+bind();
+renderAll();
+OD.init();
+
+// keep "today" honest if the app was left open past midnight
+setInterval(()=>{
+  if(document.getElementById("view-today").classList.contains("active") && document.getElementById("dayBig").textContent==="Today"){
+    const shown=dayKey(cursorDay), real=dayKey(new Date());
+    if(shown!==real){ cursorDay=new Date(); renderToday(); }
+  }
+},60000);
+
+// service worker (offline + installable)
+if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
+</script>
+</body>
+</html>
