@@ -1,7 +1,7 @@
-/* DedicatusIT OS — offline shell.
-   Cache-first for the app files; network is only ever used for OneDrive sync,
-   which the app handles itself and which fails gracefully when offline. */
-const CACHE = "dedicatusit-os-v1";
+/* DedicatusIT OS — offline shell, network-first.
+   Always fetches the latest files when online so updates show immediately;
+   falls back to the cached copy only when offline. */
+const CACHE = "dedicatusit-os-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -12,26 +12,32 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
 });
 
 self.addEventListener("activate", e => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  // Never intercept Microsoft auth / Graph calls — let them hit the network.
+  // Let Microsoft auth / Graph calls hit the network untouched.
   if (url.hostname.includes("microsoft") || url.hostname.includes("msauth") || url.hostname.includes("graph")) return;
   if (e.request.method !== "GET") return;
+
+  // Network-first: fetch fresh, update cache, fall back to cache offline.
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(()=>{});
-      return res;
-    }).catch(() => caches.match("./index.html")))
+    fetch(e.request)
+      .then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(e.request).then(hit => hit || caches.match("./index.html")))
   );
 });
