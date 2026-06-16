@@ -95,6 +95,11 @@ stay in step (most-recent edit wins).
   progress, and a familiarity tally with a 4-week trend.
 - **Filter** — drop any new idea, answer four questions, get a DO NOW / DEFER /
   DROP verdict, and file it.
+- **Growth** — log real business events (engaged, conversation, proposal,
+  converted, expanded, lost), see your funnel, and track conversions against a
+  quarter goal with a pace line that tells you if you're behind. These outcomes
+  also feed the Coach, so it can spot patterns like lots of conversations but no
+  closes.
 - **Coach** — fill in your Operator Profile once (background, strengths, what you
   avoid, 90-day goal, ideal customer). The coach then reads your recent activity
   and gives you 2–3 concrete moves for today, on-device and free. For deeper,
