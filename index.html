@@ -224,6 +224,22 @@
   .wk-row .bar i{display:block;height:100%;background:var(--green-2)}
   .wk-row .v{font-weight:700;color:var(--green-2);min-width:18px;text-align:right}
 
+  /* coach */
+  .sugg{display:flex;gap:11px;padding:12px 0;border-top:1px solid var(--line-2)}
+  .sugg:first-child{border-top:none}
+  .sugg .pri{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:0 0 auto;background:var(--green-2)}
+  .sugg.warn .pri{background:var(--amber)}
+  .sugg .body{flex:1;min-width:0}
+  .sugg .st{font-size:13.5px;font-weight:600;line-height:1.4}
+  .sugg .sl{font-size:11px;color:var(--muted);font-family:var(--serif);font-style:italic;margin-top:3px;letter-spacing:.01em}
+  .coach-note{font-family:var(--serif);font-style:italic;color:#8a5418;background:var(--amber-soft);border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.45}
+  .coach-empty{color:var(--muted);font-size:11.5px;font-style:italic}
+  .copybar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+  .copied{font-size:12px;color:var(--green-2);font-weight:600;opacity:0;transition:opacity .2s}
+  .copied.show{opacity:1}
+  .howto{font-size:12.5px;color:#54594f;margin-top:8px;line-height:1.7}
+  .howto b{color:var(--ink)}
+
   /* bottom tabs */
   nav.tabs{
     position:fixed;left:0;right:0;bottom:0;z-index:40;
@@ -495,6 +511,52 @@
       <div class="sub">Whenever a new idea appears: will this directly help us acquire, retain, or expand MSP customers within 90 days? If not, defer it.</div>
     </div>
   </section>
+  <!-- ============ COACH ============ -->
+  <section class="view" id="view-coach">
+    <div class="datehead"><div><div class="d-big">Coach</div><div class="d-sub">What your situation says to do — not random motion.</div></div></div>
+
+    <div class="card">
+      <div class="eyebrow">What to focus on now</div>
+      <div class="h">Today's highest-leverage moves</div>
+      <div id="coachNote" class="coach-note" style="display:none;margin-top:10px"></div>
+      <div id="coachSuggestions" style="margin-top:10px"></div>
+      <div class="row-split" style="margin-top:12px">
+        <span class="coach-empty" id="coachStamp"></span>
+        <button class="ghost" id="coachRefresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="eyebrow">Deeper coaching · uses your Claude or ChatGPT</div>
+      <div class="h">Hand the full picture to Claude</div>
+      <div class="sub">Builds a prompt from your profile, recent activity, and the laws. Paste it into Claude (your Pro plan) for tailored advice — no API key, no extra cost.</div>
+      <div class="copybar">
+        <button class="ghost primary" id="copyCoach">Copy coaching prompt</button>
+        <span class="copied" id="copiedMsg">Copied — paste it into Claude</span>
+      </div>
+      <details class="fold" style="margin-top:14px">
+        <summary><span class="eyebrow">Set it up once (recommended)</span><span class="chev">›</span></summary>
+        <div class="howto">
+          <b>1.</b> In Claude, create a <b>Project</b> called “DedicatusIT Coach”.<br>
+          <b>2.</b> The copied prompt already carries your profile and the 10 laws — the first paste teaches the Project your context.<br>
+          <b>3.</b> Each day: tap <b>Copy coaching prompt</b>, paste into that Project, send. It answers in context every time, for nothing beyond your existing plan.
+        </div>
+      </details>
+    </div>
+
+    <div class="card flat">
+      <details class="fold" id="profileFold">
+        <summary><span class="eyebrow">Your operator profile · this is the fuel</span><span class="chev">›</span></summary>
+        <div style="margin-top:12px">
+          <label class="fld"><span class="lab">Background &amp; experience</span><textarea id="pf_background" placeholder="e.g. 8 years running an MSP; strong technical delivery; sold a 12-person shop in 2024."></textarea></label>
+          <label class="fld"><span class="lab">Strengths — what you're best at</span><input type="text" id="pf_strengths" placeholder="e.g. technical architecture, earning customer trust, hiring engineers"></label>
+          <label class="fld"><span class="lab">What you avoid or procrastinate on</span><input type="text" id="pf_avoid" placeholder="e.g. outbound sales, asking for the close, publishing content"></label>
+          <label class="fld"><span class="lab">Your 90-day goal</span><input type="text" id="pf_goal" placeholder="e.g. 8 paying MSP clients on retainer by end of quarter"></label>
+          <label class="fld" style="margin-bottom:0"><span class="lab">Ideal MSP customer</span><input type="text" id="pf_customer" placeholder="e.g. US MSPs, 10–50 staff, wanting AI-enabled delivery"></label>
+        </div>
+      </details>
+    </div>
+  </section>
 </main>
 
 <nav class="tabs">
@@ -506,6 +568,10 @@
     <button class="tab" data-tab="week">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
       <span>Week</span>
+    </button>
+    <button class="tab" data-tab="coach">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.7 8.3l-2.2 5.4-5.4 2.2 2.2-5.4z"/></svg>
+      <span>Coach</span>
     </button>
     <button class="tab" data-tab="filter">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>
@@ -615,7 +681,7 @@ const MON=["January","February","March","April","May","June","July","August","Se
 
 /* ---------------- state ---------------- */
 const LS_KEY = "dedicatusit.os.v1";
-let state = { updatedAt:null, days:{}, weeks:{}, ideas:[] };
+let state = { updatedAt:null, days:{}, weeks:{}, ideas:[], profile:{background:"",strengths:"",avoid:"",goal:"",customer:""} };
 let cursorDay = new Date();      // which day is shown
 let cursorWeek = new Date();     // which week is shown
 let saveTimer=null, odPushTimer=null;
@@ -630,6 +696,7 @@ function blankWeek(){
 }
 function getDay(k){ if(!state.days[k]) state.days[k]=blankDay(); return state.days[k]; }
 function getWeek(k){ if(!state.weeks[k]) state.weeks[k]=blankWeek(); return state.weeks[k]; }
+function ensureProfile(){ if(!state.profile) state.profile={background:"",strengths:"",avoid:"",goal:"",customer:""}; return state.profile; }
 
 function load(){
   try{ const raw=localStorage.getItem(LS_KEY); if(raw) state=Object.assign(state,JSON.parse(raw)); }catch(e){}
@@ -660,7 +727,7 @@ function mergeRemote(remote){
 /* =========================================================================
    RENDERING
    ========================================================================= */
-function renderAll(){ renderToday(); renderWeek(); renderFilter(); }
+function renderAll(){ renderToday(); renderWeek(); renderFilter(); renderCoach(); }
 
 /* ---- TODAY ---- */
 function renderToday(){
@@ -871,6 +938,134 @@ function renderLaws(){
   });
 }
 
+/* ---- COACH ---- */
+function coachSignals(){
+  const today=new Date(); const tk=dayKey(today); const d=state.days[tk]||blankDay();
+  const wk=weekKey(today); const w=state.weeks[wk]||blankWeek();
+  const p=ensureProfile();
+  const items=[]; let note="";
+
+  if((d.pareto||[]).filter(x=>x&&x.trim()).length===0)
+    items.push({text:"Set today's Pareto top 3 before anything else — the day drifts without them.",law:"Pareto",warn:true});
+
+  HABITS.forEach(([id,title])=>{
+    const doneToday=d.habits&&d.habits[id]&&d.habits[id].done;
+    if(doneToday) return;
+    const yest=streakFor(id, addDays(today,-1));
+    if(yest>=2) items.push({text:`Your "${title.toLowerCase()}" streak of ${yest} is on the line — do it today to keep it alive.`,law:"Compounding",warn:true});
+  });
+
+  const dow=(today.getDay()+6)%7; // 0 = Monday
+  if(dow>=2 && (w.familiarity||0) < 3)
+    items.push({text:`Only ${w.familiarity||0} touchpoints logged this week — they need to keep seeing you. Post or follow up today.`,law:"Familiarity",warn:true});
+
+  if(!(w.caseStudy&&w.caseStudy.trim()))
+    items.push({text:"Nothing logged on a repeatable success story this week — that's priority two of three.",law:"Customer Reality",warn:false});
+
+  (w.problems||[]).forEach(pr=>{
+    if((pr.problem&&pr.problem.trim()) && !(pr.success&&pr.success.trim()))
+      items.push({text:`Name the success state for: "${(pr.problem||'').slice(0,44)}…" — a problem isn't solvable until "done" is defined.`,law:"Kidlin",warn:false});
+  });
+
+  const deferred=(state.ideas||[]).filter(i=>i.verdict==="DEFER");
+  if(deferred.length>=3)
+    items.push({text:`${deferred.length} ideas sit parked as DEFER — review them before they quietly turn into distractions.`,law:"Focus",warn:false});
+
+  let noCount=0,have=0;
+  for(let i=0;i<3;i++){ const dd=state.days[dayKey(addDays(today,-i))]; if(dd&&dd.leverage){ have++; if(dd.leverage==="no") noCount++; } }
+  if(have>=2 && noCount>=2)
+    items.push({text:"Two recent days were low-leverage. What can you delegate or drop to get back to sales, partnerships, or strategy?",law:"Founder Leverage",warn:true});
+
+  const avoid=(p.avoid||"").toLowerCase();
+  if(avoid.trim()){
+    const planText=((w.pareto||[]).join(" ")+" "+(d.pareto||[]).join(" ")).toLowerCase();
+    const words=avoid.split(/[,;]+/).map(s=>s.trim()).filter(w=>w.length>2);
+    const missing=words.filter(wd=>!planText.includes(wd.split(/\s+/)[0]));
+    if(missing.length && words.length)
+      note=`You tend to avoid ${missing.join(", ")} — and nothing in this week's or today's plan touches it. That's the wander to correct.`;
+  }
+
+  if(items.length===0)
+    items.push({text:"Basics are covered. Pick the single Pareto item that most moves your 90-day goal and protect time for it.",law:"Focus",warn:false});
+
+  return {note, items};
+}
+
+function renderCoach(){
+  renderProfile();
+  const {note,items}=coachSignals();
+  const noteEl=document.getElementById("coachNote");
+  if(note){ noteEl.style.display="block"; noteEl.textContent=note; } else { noteEl.style.display="none"; }
+  const box=document.getElementById("coachSuggestions"); box.innerHTML="";
+  items.slice(0,6).forEach(it=>{
+    const el=document.createElement("div"); el.className="sugg"+(it.warn?" warn":"");
+    el.innerHTML=`<span class="pri"></span><div class="body"><div class="st">${escapeHtml(it.text)}</div><div class="sl">${it.law}</div></div>`;
+    box.appendChild(el);
+  });
+  const t=new Date();
+  document.getElementById("coachStamp").textContent="Read at "+pad(t.getHours())+":"+pad(t.getMinutes());
+}
+
+function renderProfile(){
+  const p=ensureProfile();
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e && document.activeElement!==e) e.value=v||""; };
+  set("pf_background",p.background); set("pf_strengths",p.strengths); set("pf_avoid",p.avoid); set("pf_goal",p.goal); set("pf_customer",p.customer);
+  const fold=document.getElementById("profileFold");
+  const empty=!(p.background||p.strengths||p.avoid||p.goal||p.customer);
+  if(fold && empty && !fold.dataset.touched) fold.open=true;
+}
+
+function buildCoachPrompt(){
+  const p=ensureProfile();
+  const today=new Date(); const tk=dayKey(today); const d=state.days[tk]||blankDay();
+  const wk=weekKey(today); const w=state.weeks[wk]||blankWeek();
+  const L=[];
+  L.push("You are my operating coach for my MSP-focused business, DedicatusIT. Be direct and specific. From everything below, tell me the 2–3 highest-leverage things I should do today, in priority order, each tied to one of my operating laws. Call out clearly where I am wandering or avoiding the important work. Finish with one sentence to keep in mind today.");
+  L.push("");
+  L.push("MY THREE PRIORITIES (everything must serve these):");
+  L.push("1) Increase quality MSP conversations. 2) Convert conversations into repeatable customer success stories. 3) Build a system that generates trust and familiarity.");
+  L.push("");
+  L.push("MY OPERATING LAWS:");
+  LAWS.forEach(([n,desc],i)=>L.push(`${i+1}. ${n} — ${desc}`));
+  L.push("");
+  L.push("MY PROFILE:");
+  L.push("• Background: "+(p.background||"(not provided)"));
+  L.push("• Strengths: "+(p.strengths||"(not provided)"));
+  L.push("• What I avoid / procrastinate on: "+(p.avoid||"(not provided)"));
+  L.push("• 90-day goal: "+(p.goal||"(not provided)"));
+  L.push("• Ideal customer: "+(p.customer||"(not provided)"));
+  L.push("");
+  L.push("MY CURRENT SITUATION ("+MON[today.getMonth()]+" "+today.getDate()+"):");
+  L.push("• Today's Pareto top 3: "+((d.pareto||[]).filter(x=>x&&x.trim()).join(" | ")||"(empty)"));
+  L.push("• Compounding habits today: "+HABITS.map(([id,t])=>`${t} — ${d.habits&&d.habits[id]&&d.habits[id].done?"done":"not done"} (streak ${streakFor(id,today)})`).join("; "));
+  L.push("• This week's Pareto: "+((w.pareto||[]).filter(x=>x&&x.trim()).join(" | ")||"(empty)"));
+  L.push("• Familiarity touchpoints this week: "+(w.familiarity||0));
+  L.push("• Case-study progress this week: "+((w.caseStudy||"").trim()||"(none logged)"));
+  if(w.murphyRisk&&w.murphyRisk.trim()) L.push("• This week's fragile point: "+w.murphyRisk+(w.murphyBackup?(" — backup: "+w.murphyBackup):" (no backup yet)"));
+  const probs=(w.problems||[]).filter(pr=>pr.problem&&pr.problem.trim());
+  if(probs.length) L.push("• Open problems: "+probs.map(pr=>`[${pr.problem}${pr.success?(" → goal: "+pr.success):" (no success state yet)"}]`).join("; "));
+  const deferred=(state.ideas||[]).filter(i=>i.verdict==="DEFER").map(i=>i.text);
+  if(deferred.length) L.push("• Ideas I parked as DEFER: "+deferred.join("; "));
+  const last7=[]; for(let i=6;i>=0;i--){ const k=dayKey(addDays(today,-i)); const dd=state.days[k]; last7.push(dd?HABITS.filter(([id])=>dd.habits&&dd.habits[id]&&dd.habits[id].done).length:0); }
+  L.push("• Habits completed each of the last 7 days (out of 4): "+last7.join(", "));
+  L.push("");
+  L.push("Now — what should I focus on today?");
+  return L.join("\n");
+}
+
+async function copyCoachPrompt(){
+  const text=buildCoachPrompt();
+  try{ await navigator.clipboard.writeText(text); showCopied(); }
+  catch(e){
+    const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.top="-1000px"; document.body.appendChild(ta); ta.focus(); ta.select();
+    let ok=false; try{ ok=document.execCommand("copy"); }catch(_){}
+    document.body.removeChild(ta);
+    if(ok) showCopied(); else alert("Couldn't copy automatically here. Tap and hold to select the prompt instead.");
+  }
+}
+function showCopied(){ const m=document.getElementById("copiedMsg"); m.classList.add("show"); setTimeout(()=>m.classList.remove("show"),2400); }
+
+
 /* =========================================================================
    EVENTS
    ========================================================================= */
@@ -883,6 +1078,7 @@ function bind(){
     const v=document.getElementById("view-"+t.dataset.tab);
     v.classList.add("active"); v.classList.add("fade");
     setTimeout(()=>v.classList.remove("fade"),400);
+    if(t.dataset.tab==="coach") renderCoach();
     window.scrollTo({top:0,behavior:"instant"in window? "instant":"auto"});
   }));
 
@@ -937,6 +1133,16 @@ function bind(){
   document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
   document.getElementById("importFile").addEventListener("change",importData);
   document.getElementById("odBtn").onclick=()=>OD.connectOrSync();
+
+  // coach + profile
+  [["pf_background","background"],["pf_strengths","strengths"],["pf_avoid","avoid"],["pf_goal","goal"],["pf_customer","customer"]].forEach(([id,key])=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener("input",()=>{ ensureProfile()[key]=el.value; save(); });
+  });
+  const pf=document.getElementById("profileFold");
+  if(pf) pf.addEventListener("toggle",()=>{ pf.dataset.touched="1"; });
+  document.getElementById("copyCoach").onclick=copyCoachPrompt;
+  document.getElementById("coachRefresh").onclick=renderCoach;
 }
 function resetFilter(){
   filterAns={focus:null,ninety:null,real:null};
@@ -960,7 +1166,7 @@ function importData(e){
     const incoming=JSON.parse(r.result);
     if(!incoming || typeof incoming!=="object" || !("days" in incoming)){ alert("That doesn't look like a DedicatusIT backup file."); return; }
     if(confirm("Import will replace the data on this device with the file's contents. Continue?")){
-      state=Object.assign({updatedAt:null,days:{},weeks:{},ideas:[]},incoming);
+      state=Object.assign({updatedAt:null,days:{},weeks:{},ideas:[],profile:{background:"",strengths:"",avoid:"",goal:"",customer:""}},incoming);
       localStorage.setItem(LS_KEY,JSON.stringify(state));
       renderAll(); document.getElementById("sheetBg").classList.remove("show");
     }

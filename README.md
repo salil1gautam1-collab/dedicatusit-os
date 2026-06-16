@@ -95,7 +95,33 @@ stay in step (most-recent edit wins).
   progress, and a familiarity tally with a 4-week trend.
 - **Filter** — drop any new idea, answer four questions, get a DO NOW / DEFER /
   DROP verdict, and file it.
+- **Coach** — fill in your Operator Profile once (background, strengths, what you
+  avoid, 90-day goal, ideal customer). The coach then reads your recent activity
+  and gives you 2–3 concrete moves for today, on-device and free. For deeper,
+  tailored advice it builds a full prompt you paste into Claude or ChatGPT — see
+  below.
 - **Laws** — the 10 laws as one-line reminders.
 
 Built to fill in under three minutes a day. The streaks are the point — keep them
 alive and the compounding takes care of itself.
+
+---
+
+## Coaching with your existing Claude / ChatGPT (no API, no extra cost)
+
+A paid Claude Pro or ChatGPT subscription is for the chat apps — it does **not**
+include API access, so it can't be wired directly into this page. But you don't
+need that. The Coach tab does the gathering; your subscription does the thinking:
+
+1. Open **Coach** and tap **Copy coaching prompt**. It bundles your profile, your
+   recent activity, and the 10 laws into one prompt.
+2. Paste it into Claude (covered by your Pro plan) and send.
+
+For the smoothest version, set it up once: in Claude, create a **Project** named
+"DedicatusIT Coach", and let the first pasted prompt establish your context. After
+that, each day is just copy → paste → send, and it answers in context every time —
+for nothing beyond the subscription you already pay for.
+
+*(If you ever want it fully automatic inside the app instead, that path needs a
+separate pay-per-use API key from console.anthropic.com — optional, and not
+required for any of the above.)*
