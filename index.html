@@ -1037,7 +1037,8 @@ const HABITS = [
   ["insight",      "Learn one MSP insight",      "What did you learn?",        "Capture the insight…"],
   ["publish",      "Publish one useful thought", "Where, and what?",           "e.g. LinkedIn — pricing for MSPs"],
   ["process",      "Improve one process",        "Which one?",                 "The process you sharpened…"],
-  ["relationship", "Deepen one relationship",    "With whom?",                 "Who did you invest in?"]
+  ["relationship", "Deepen one relationship",    "With whom?",                 "Who did you invest in?"],
+  ["outreach",     "Outreach done today",        "Auto-ticks at your call target", "Optional note…"]
 ];
 
 /* ---------------- date helpers ---------------- */
@@ -1079,7 +1080,7 @@ let saveTimer=null, odPushTimer=null;
 
 function blankDay(){
   return { pareto:["","",""],
-           habits:{insight:{done:false,note:""},publish:{done:false,note:""},process:{done:false,note:""},relationship:{done:false,note:""}},
+           habits:{insight:{done:false,note:""},publish:{done:false,note:""},process:{done:false,note:""},relationship:{done:false,note:""},outreach:{done:false,note:"",manual:false}},
            leverage:null, delegate:"", reflection:"" };
 }
 function blankWeek(){
@@ -1091,6 +1092,7 @@ function ensureProfile(){ if(!state.profile) state.profile={background:"",streng
 
 function load(){
   try{ const raw=localStorage.getItem(LS_KEY); if(raw) state=Object.assign(state,JSON.parse(raw)); }catch(e){}
+  for(const k in state.days){ const hb=state.days[k].habits; if(hb && !hb.outreach) hb.outreach={done:false,note:"",manual:false}; }
 }
 function touch(){ state.updatedAt=new Date().toISOString(); }
 function save(){
@@ -1145,8 +1147,9 @@ function renderToday(){
 
   // habits
   const hb=document.getElementById("habits"); hb.innerHTML="";
+  if(typeof autoOutreachHabit==="function") autoOutreachHabit();
   HABITS.forEach(([id,title,sub,ph])=>{
-    const h=d.habits[id];
+    const h=d.habits[id]||(d.habits[id]={done:false,note:"",manual:false});
     const streak=streakFor(id, cursorDay);
     const el=document.createElement("div"); el.className="habit";
     el.innerHTML=`
@@ -1160,7 +1163,7 @@ function renderToday(){
         </div>
       </div>`;
     const chk=el.querySelector(".check");
-    const toggle=()=>{ h.done=!h.done; save(); renderToday(); renderHistory(); };
+    const toggle=()=>{ h.done=!h.done; if(id==="outreach")h.manual=true; save(); renderToday(); renderHistory(); };
     chk.addEventListener("click",toggle);
     chk.addEventListener("keydown",e=>{ if(e.key===" "||e.key==="Enter"){e.preventDefault();toggle();}});
     const note=document.createElement("input"); note.type="text"; note.placeholder=ph; note.value=h.note||"";
@@ -1181,6 +1184,18 @@ function renderToday(){
   document.getElementById("reflection").value = d.reflection||"";
 
   renderHistory();
+}
+
+function autoOutreachHabit(){
+  if(!state.pipeline) return;
+  const t=dayKey(new Date());
+  const lg=state.pipeline.log?state.pipeline.log[t]:null;
+  const calls=lg?(lg.calls||0):0;
+  const target=(state.pipeline.settings&&state.pipeline.settings.callTarget)||15;
+  const day=getDay(t);
+  if(!day.habits.outreach) day.habits.outreach={done:false,note:"",manual:false};
+  const h=day.habits.outreach;
+  if(!h.manual && !h.done && calls>=target){ h.done=true; h.auto=true; save(); }
 }
 
 function streakFor(id, fromDate){
@@ -1870,7 +1885,7 @@ const PL = (function(){
       case"reengaged":bump("conversations");growth("conversation",p.company);p.stage="conversation";p.nextDate=_add(t,1);p.nextAction="Offer free audit";break;
       case"nur_drop":p.stage="passed";p.disposition="Dropped";p.nextDate=null;break;
     }
-    p.history.unshift({d:t,o:key});if(typeof save==="function")save();
+    p.history.unshift({d:t,o:key});if(typeof autoOutreachHabit==="function")autoOutreachHabit();if(typeof save==="function")save();
   }
 
   /* ---- today plan ---- */
