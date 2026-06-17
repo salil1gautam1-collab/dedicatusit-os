@@ -1755,8 +1755,12 @@ const GD = {
     if(!this.ready){ await this.init(); if(!this.ready) return; }
     try{
       await this.getToken(); this.signedIn=true;
-      setSync("ok","Drive"); document.getElementById("odBtn").textContent="Sync now"; document.getElementById("odState").textContent="· connected";
+      document.getElementById("odBtn").textContent="Sync now"; document.getElementById("odState").textContent="· connected";
+      setSync("busy","Syncing…");
       await this.pull(); await this.push();
+      const when=new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+      setSync("ok","Synced ✓ "+when);
+      document.getElementById("odState").textContent="· synced "+when;
     }catch(e){ console.warn("connect failed",e); alert("Google sign-in was cancelled or blocked."); }
   },
   async findFile(t){
@@ -1786,7 +1790,7 @@ const GD = {
         const res=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST",headers:{Authorization:"Bearer "+t,"Content-Type":"multipart/related; boundary="+boundary},body:multipart});
         const j=await res.json(); if(j.id) this.fileId=j.id;
       }
-      setSync("ok","Drive");
+      setSync("ok","Synced ✓ "+new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}));
     }catch(e){ console.warn("push failed",e); setSync("warn","Offline"); }
   }
 }
@@ -2110,6 +2114,12 @@ renderLaws();
 bind();
 renderAll();
 GD.init();
+
+/* auto-pull the latest from Drive when the app regains focus — no manual reload */
+let _lastPull=0;
+function _focusPull(){ if(GD.ready && GD.signedIn && Date.now()-_lastPull>3000){ _lastPull=Date.now(); GD.pull(); } }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") _focusPull(); });
+window.addEventListener("focus",_focusPull);
 
 // keep "today" honest if the app was left open past midnight
 setInterval(()=>{
