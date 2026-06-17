@@ -1,7 +1,7 @@
 /* DedicatusIT OS — offline shell, network-first.
    Always fetches the latest files when online so updates show immediately;
    falls back to the cached copy only when offline. */
-const CACHE = "dedicatusit-os-v2";
+const CACHE = "dedicatusit-os-v3";
 const ASSETS = [
   "./",
   "./index.html",
