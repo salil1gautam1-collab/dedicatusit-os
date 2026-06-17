@@ -984,8 +984,8 @@
 
     <div class="opt">
       <div>
-        <div class="oi">OneDrive auto-sync <span id="odState" style="color:var(--muted);font-weight:500">· not set up</span></div>
-        <div class="od" id="odDesc">Add your Microsoft app ID once (see README) to sync automatically across devices.</div>
+        <div class="oi">Google Drive auto-sync <span id="odState" style="color:var(--muted);font-weight:500">· not set up</span></div>
+        <div class="od" id="odDesc">Sign in with Google once to sync automatically across all your devices.</div>
       </div>
       <div class="actions"><button class="ghost" id="odBtn">Connect</button></div>
     </div>
@@ -1014,10 +1014,10 @@
    Leave clientId empty to run fully local (manual backup still works).
    Steps are in README.md. */
 const CONFIG = {
-  clientId: "",                                   // <-- paste your Azure app (client) ID here
-  redirectUri: window.location.origin + window.location.pathname,
-  scopes: ["Files.ReadWrite.AppFolder", "User.Read"]
+  googleClientId: "829111234642-lh1pqlen2lnoe6mv1hu998r3bg3gedrj.apps.googleusercontent.com",  // Google OAuth Client ID
+  scopes: "https://www.googleapis.com/auth/drive.appdata"
 };
+const FILENAME = "dedicatusit-os.json";
 /* ------------------------------------------------------------------------- */
 
 const LAWS = [
@@ -1098,12 +1098,12 @@ function touch(){ state.updatedAt=new Date().toISOString(); }
 function save(){
   touch();
   try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
-  if(OD.ready && OD.account){ clearTimeout(odPushTimer); odPushTimer=setTimeout(()=>OD.push(),1500); setSync("busy","Saving…"); }
+  if(GD.ready && GD.signedIn){ clearTimeout(odPushTimer); odPushTimer=setTimeout(()=>GD.push(),1500); setSync("busy","Saving…"); }
   else { localSavedFlash(); }
 }
 let localFlashTimer=null;
 function localSavedFlash(){
-  if(CONFIG.clientId) return;            // OneDrive mode shows its own status instead
+  if(CONFIG.googleClientId) return;      // Drive mode shows its own status instead
   setSync("ok","Saved");
   clearTimeout(localFlashTimer);
   localFlashTimer=setTimeout(()=>setSync("","Local"),1100);
@@ -1114,7 +1114,7 @@ function mergeRemote(remote){
   if(!remote) return;
   const rT=remote.updatedAt? Date.parse(remote.updatedAt):0;
   const lT=state.updatedAt? Date.parse(state.updatedAt):0;
-  if(rT>lT){ state=remote; localStorage.setItem(LS_KEY,JSON.stringify(state)); renderAll(); }
+  if(rT>lT){ state=remote; localStorage.setItem(LS_KEY,JSON.stringify(state)); renderAll(); if(typeof PL!=="undefined") PL.render(); }
 }
 
 /* =========================================================================
@@ -1669,7 +1669,7 @@ function bind(){
   document.getElementById("exportBtn").onclick=exportData;
   document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
   document.getElementById("importFile").addEventListener("change",importData);
-  document.getElementById("odBtn").onclick=()=>OD.connectOrSync();
+  document.getElementById("odBtn").onclick=()=>GD.connectOrSync();
 
   // coach + profile
   [["pf_background","background"],["pf_strengths","strengths"],["pf_avoid","avoid"],["pf_goal","goal"],["pf_customer","customer"]].forEach(([id,key])=>{
@@ -1723,60 +1723,73 @@ function setSync(kind,label){
 }
 
 /* =========================================================================
-   OneDrive sync (optional, lazy). No secrets. PKCE via MSAL.
+   Google Drive sync (optional, lazy). No secrets — OAuth via Google Identity Services.
    ========================================================================= */
-const OD = {
-  ready:false, msal:null, account:null,
+const GD = {
+  ready:false, signedIn:false, tokenClient:null, token:null, expiry:0, fileId:null, _res:null, _rej:null,
   async init(){
-    if(!CONFIG.clientId){ setSync("","Local"); document.getElementById("odBtn").textContent="Set up"; return; }
+    if(!CONFIG.googleClientId){ setSync("","Local"); document.getElementById("odBtn").textContent="Set up"; return; }
     try{
-      await loadScript("https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js");
-      this.msal=new msal.PublicClientApplication({
-        auth:{ clientId:CONFIG.clientId, authority:"https://login.microsoftonline.com/consumers", redirectUri:CONFIG.redirectUri },
-        cache:{ cacheLocation:"localStorage" }
+      await loadScript("https://accounts.google.com/gsi/client");
+      const self=this;
+      this.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CONFIG.googleClientId,
+        scope: CONFIG.scopes,
+        callback:(resp)=>{ if(resp && resp.access_token){ self.token=resp.access_token; self.expiry=Date.now()+((resp.expires_in||3600)*1000); if(self._res) self._res(self.token);} else if(self._rej){ self._rej(resp); } self._res=self._rej=null; },
+        error_callback:(err)=>{ if(self._rej) self._rej(err); self._res=self._rej=null; }
       });
-      await this.msal.initialize();
-      const res=await this.msal.handleRedirectPromise();
-      if(res&&res.account) this.account=res.account;
-      else { const all=this.msal.getAllAccounts(); if(all.length) this.account=all[0]; }
       this.ready=true;
-      if(this.account){ setSync("ok","OneDrive"); document.getElementById("odBtn").textContent="Sync now"; document.getElementById("odState").textContent="· connected"; await this.pull(); }
-      else { setSync("warn","Connect"); document.getElementById("odBtn").textContent="Connect"; }
-    }catch(e){ console.warn("OneDrive init failed",e); setSync("warn","Offline"); }
+      setSync("warn","Connect"); document.getElementById("odBtn").textContent="Connect"; document.getElementById("odState").textContent="· not connected";
+      try{ await this.getToken(); this.signedIn=true; setSync("ok","Drive"); document.getElementById("odBtn").textContent="Sync now"; document.getElementById("odState").textContent="· connected"; await this.pull(); }catch(e){ /* needs the user to click Connect once */ }
+    }catch(e){ console.warn("Drive init failed",e); setSync("warn","Offline"); }
   },
-  async token(){
-    const req={scopes:CONFIG.scopes, account:this.account};
-    try{ return (await this.msal.acquireTokenSilent(req)).accessToken; }
-    catch(e){ const r=await this.msal.acquireTokenPopup(req); this.account=r.account; return r.accessToken; }
+  getToken(){
+    return new Promise((resolve,reject)=>{
+      if(this.token && Date.now() < this.expiry-60000){ resolve(this.token); return; }
+      this._res=resolve; this._rej=reject;
+      try{ this.tokenClient.requestAccessToken({prompt:""}); }catch(e){ reject(e); }
+    });
   },
   async connectOrSync(){
-    if(!CONFIG.clientId){ alert("Add your Microsoft app (client) ID in the CONFIG block first — see README.md."); return; }
-    if(!this.ready){ await this.init(); }
-    if(!this.account){
-      try{ const r=await this.msal.loginPopup({scopes:CONFIG.scopes}); this.account=r.account;
-        setSync("ok","OneDrive"); document.getElementById("odState").textContent="· connected"; document.getElementById("odBtn").textContent="Sync now";
-        await this.pull(); await this.push();
-      }catch(e){ alert("Sign-in was cancelled or blocked."); }
-    } else { await this.pull(); await this.push(); }
+    if(!CONFIG.googleClientId){ alert("Add your Google OAuth Client ID in the CONFIG block first — see README."); return; }
+    if(!this.ready){ await this.init(); if(!this.ready) return; }
+    try{
+      await this.getToken(); this.signedIn=true;
+      setSync("ok","Drive"); document.getElementById("odBtn").textContent="Sync now"; document.getElementById("odState").textContent="· connected";
+      await this.pull(); await this.push();
+    }catch(e){ console.warn("connect failed",e); alert("Google sign-in was cancelled or blocked."); }
+  },
+  async findFile(t){
+    const q=encodeURIComponent("name='"+FILENAME+"'");
+    const res=await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q="+q+"&fields=files(id,modifiedTime)",{headers:{Authorization:"Bearer "+t}});
+    const j=await res.json(); if(j.files && j.files.length){ this.fileId=j.files[0].id; return this.fileId; } return null;
   },
   async pull(){
     try{
-      const t=await this.token();
-      const res=await fetch("https://graph.microsoft.com/v1.0/me/drive/special/approot:/data.json:/content",{headers:{Authorization:"Bearer "+t}});
-      if(res.status===200){ const remote=await res.json(); mergeRemote(remote); }
-      setSync("ok","OneDrive");
+      const t=await this.getToken();
+      const id=await this.findFile(t);
+      if(id){ const res=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:{Authorization:"Bearer "+t}}); if(res.status===200){ const remote=await res.json(); mergeRemote(remote); } }
+      setSync("ok","Drive");
     }catch(e){ console.warn("pull failed",e); setSync("warn","Offline"); }
   },
   async push(){
     try{
-      const t=await this.token();
-      await fetch("https://graph.microsoft.com/v1.0/me/drive/special/approot:/data.json:/content",{
-        method:"PUT", headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"}, body:JSON.stringify(state)
-      });
-      setSync("ok","OneDrive");
+      const t=await this.getToken();
+      if(!this.fileId) await this.findFile(t);
+      const body=JSON.stringify(state);
+      if(this.fileId){
+        await fetch("https://www.googleapis.com/upload/drive/v3/files/"+this.fileId+"?uploadType=media",{method:"PATCH",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body});
+      } else {
+        const boundary="dedi"+Date.now();
+        const meta={name:FILENAME,parents:["appDataFolder"]};
+        const multipart="--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+boundary+"\r\nContent-Type: application/json\r\n\r\n"+body+"\r\n--"+boundary+"--";
+        const res=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST",headers:{Authorization:"Bearer "+t,"Content-Type":"multipart/related; boundary="+boundary},body:multipart});
+        const j=await res.json(); if(j.id) this.fileId=j.id;
+      }
+      setSync("ok","Drive");
     }catch(e){ console.warn("push failed",e); setSync("warn","Offline"); }
   }
-};
+}
 function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
 
 /* =========================================================================
@@ -2096,7 +2109,7 @@ PL.boot();
 renderLaws();
 bind();
 renderAll();
-OD.init();
+GD.init();
 
 // keep "today" honest if the app was left open past midnight
 setInterval(()=>{
