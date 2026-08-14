@@ -1927,7 +1927,7 @@ const PL = (function(){
       else if(p.stage==="attempting")dueCb.push(p);
       else if(p.stage==="reintro")g.lifollow.push(p);
       else if(p.stage==="nurture")dueNur.push(p);});
-    const _sc=(p)=>{if(!p.tz)return 9999;const h=localHour(p.tz,now);if(h==null)return 9999;if(h>=8&&h<18)return -h;return 100+(h<8?(8-h):(24-h+8));};const byC=(a,b)=>_sc(a)-_sc(b);
+    const _sc=(p)=>{if(!p.tz)return 99999;const off=tzOff(p.tz,now);const h=localHour(p.tz,now);if(off==null||h==null)return 99999;const sh=SLOTS[(p.slot||0)%4].h;let m=sh*60+(330-off);m=((m%1440)+1440)%1440;const nm=now.getHours()*60+now.getMinutes();let d=m-nm;const live=(h>=8&&h<18);if(d>720)d-=1440;if(d<=0){if(live&&d>-120)d=0;else d+=1440;}return d;};const byC=(a,b)=>_sc(a)-_sc(b);
     dueCb.sort(byC);g.callback=dueCb.slice(0,callsLeft);
     const cap=Math.max(0,callsLeft-g.callback.length);
     const cold=state.pipeline.prospects.filter(p=>p.stage==="cold");cold.sort(byC);g.coldcall=cold.slice(0,cap);
