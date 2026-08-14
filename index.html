@@ -1850,7 +1850,7 @@ const PL = (function(){
   function istClock(iana,lh,date){const o=tzOff(iana,date);if(o==null)return null;let m=lh*60+(330-o);m=((m%1440)+1440)%1440;let h=Math.floor(m/60),mm=m%60,ap=h<12?"AM":"PM",h12=h%12||12;return h12+(mm?":"+String(mm).padStart(2,"0"):"")+" "+ap;}
   function window_(iana,date){const a=istClock(iana,9,date),b=istClock(iana,17,date);return a&&b?a+"\u2013"+b+" IST":"";}
   function callable(p,date){if(!p.tz)return null;const h=localHour(p.tz,date);return h!=null&&h>=8&&h<18;}
-  function slotHint(p){const s=SLOTS[(p.slot||0)%4];const t=p.tz?istClock(p.tz,s.h,new Date()):null;return _ord((p.attempts||0)+1)+" call \u00b7 try "+s.lab+(t?" (~"+t+" your time)":"");}
+  function slotHint(p){const nw=new Date();const live=callable(p,nw);const s=SLOTS[(p.slot||0)%4];const t=p.tz?istClock(p.tz,s.h,nw):null;if(live)return _ord((p.attempts||0)+1)+" call \u00b7 in their hours now \u2014 dial";return _ord((p.attempts||0)+1)+" call \u00b7 try "+s.lab+(t?" (~"+t+" your time)":"");}
 
   /* ---- pipeline accessors ---- */
   function PIPE(){return state.pipeline;}
@@ -2037,6 +2037,7 @@ const PL = (function(){
       ["Nurture — resurface","nur","nurture",p=>task(p,"nurture",p.nextAction)]
     ];
     let any=false,h="";
+    (function(){const st2=state.pipeline.settings;const myn=st2.myPhone||"";const vmd="Hi [name], this is Salil with DedicatusIT. We give MSPs dedicated offshore engineers \u2014 L1 to L4 \u2014 so you add delivery capacity without adding headcount. You can reach me at {number}. Again \u2014 Salil, DedicatusIT, {number}. Thanks!";const vm=(st2.vmScript||vmd).split("{number}").join(myn||"(set your number)");h+='<div class="card" style="padding:12px 14px;margin-bottom:12px;border-left:3px solid var(--amber)">'+'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">'+'<div><span class="eyebrow">Your callback number</span> <span style="font-family:var(--serif);font-weight:700;font-size:20px;color:var(--green);letter-spacing:.5px">'+(myn?_esc(myn):'<button class="pl-tzp unk" onclick="PL.setMyPhone()">Set your number</button>')+'</span></div>'+(myn?'<button class="pl-tzp unk" onclick="PL.setMyPhone()">edit</button>':"")+'</div>'+'<div style="margin-top:8px"><span class="eyebrow">Voicemail \u2014 read aloud</span> <button class="pl-tzp unk" onclick="PL.setVm()">edit</button>'+'<div style="font-size:13px;line-height:1.55;margin-top:4px;color:#33392f">'+_esc(vm)+'</div></div></div>';})();
     for(const[title,c,gk,fn] of blocks){const arr=g[gk];if(!arr||!arr.length)continue;any=true;
       h+='<div class="pl-grp"><div class="pl-grp-h"><span class="c '+c+'">'+arr.length+'</span><h4>'+title+'</h4></div><div class="card" style="padding:0">'+arr.map(fn).join("")+'</div></div>';}
     const st=state.pipeline.settings,pw=postsWeek();
@@ -2168,6 +2169,8 @@ const PL = (function(){
     toggle(id){const e=document.getElementById("ploc-"+id);if(e)e.style.display=e.style.display==="none"?"flex":"none";},
     log(id,key){const p=P(id);if(!p)return;var _nn=document.getElementById("plnote-"+id);var _note=_nn?(_nn.value||"").trim():"";apply(p,key,_note);const c=document.getElementById("pltask-"+id);if(c){c.style.transition="opacity .25s,transform .25s";c.style.opacity="0";c.style.transform="translateX(8px)";}toast(msg(key,p));setTimeout(render,260);},
     post(){bump("posts");if(typeof save==="function")save();toast("Post logged ✓");render();},
+    setMyPhone(){const st=state.pipeline.settings;const v=prompt("Your callback number \u2014 exactly as you want to say it aloud:",st.myPhone||"");if(v===null)return;st.myPhone=(v||"").trim();if(typeof save==="function")save();render();},
+    setVm(){const st=state.pipeline.settings;const vmd="Hi [name], this is Salil with DedicatusIT. We give MSPs dedicated offshore engineers \u2014 L1 to L4 \u2014 so you add delivery capacity without adding headcount. You can reach me at {number}. Again \u2014 Salil, DedicatusIT, {number}. Thanks!";const v=prompt("Voicemail script \u2014 use {number} where your number should be read:",st.vmScript||vmd);if(v===null)return;st.vmScript=(v||"").trim();if(typeof save==="function")save();render();},
     setTarget(which){const st=state.pipeline.settings;const cur=which==="Calls"?st.callTarget:st.liTarget;const v=prompt("Daily "+which+" target (current "+cur+"). Set as high as you like:",cur);if(v===null)return;const n=parseInt(v,10);if(!n||n<1){toast("Keep it a positive number");return;}if(which==="Calls")st.callTarget=n;else st.liTarget=n;if(typeof save==="function")save();toast(which+" target set to "+n);render();},
     setPhone(id){const p=P(id);if(!p)return;const v=prompt("Phone number for "+p.company+" (with country code, e.g. +1 216 555 0134):",p.phone||"");if(v===null)return;p.phone=(v||"").trim();if(typeof save==="function")save();render();},
     setTz(id){const row=document.getElementById("pltz-"+id);if(!row)return;row.innerHTML=["ET","CT","MT","PT","AK","HT","INTL"].map(z=>'<button class="pl-pick" onclick="PL.applyTz(\''+id+"','"+z+"')\">"+z+"</button>").join("");},
