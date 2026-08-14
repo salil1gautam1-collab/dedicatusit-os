@@ -1914,7 +1914,7 @@ const PL = (function(){
       case"reengaged":bump("conversations");growth("conversation",p.company);p.stage="conversation";p.nextDate=_add(t,1);p.nextAction="Offer free audit";break;
       case"nur_drop":p.stage="passed";p.disposition="Dropped";p.nextDate=null;break;
     }
-    p.history.unshift({d:t,o:key,n:(note||"")});if(typeof autoOutreachHabit==="function")autoOutreachHabit();if(typeof save==="function")save();
+    var _nw=new Date();p.history.unshift({d:t,o:key,n:(note||""),hm:("0"+_nw.getHours()).slice(-2)+":"+("0"+_nw.getMinutes()).slice(-2)});if(typeof autoOutreachHabit==="function")autoOutreachHabit();if(typeof save==="function")save();
   }
 
   /* ---- today plan ---- */
@@ -1927,7 +1927,7 @@ const PL = (function(){
       else if(p.stage==="attempting")dueCb.push(p);
       else if(p.stage==="reintro")g.lifollow.push(p);
       else if(p.stage==="nurture")dueNur.push(p);});
-    const byC=(a,b)=>((callable(b,now)?1:0)-(callable(a,now)?1:0));
+    const _sc=(p)=>{if(!p.tz)return 9999;const h=localHour(p.tz,now);if(h==null)return 9999;if(h>=8&&h<18)return -h;return 100+(h<8?(8-h):(24-h+8));};const byC=(a,b)=>_sc(a)-_sc(b);
     dueCb.sort(byC);g.callback=dueCb.slice(0,callsLeft);
     const cap=Math.max(0,callsLeft-g.callback.length);
     const cold=state.pipeline.prospects.filter(p=>p.stage==="cold");cold.sort(byC);g.coldcall=cold.slice(0,cap);
@@ -2058,6 +2058,22 @@ const PL = (function(){
       f("Total",total,total)+f("Contacted",contacted,total)+f("In conversation",conv,total)+f("Audit+",aud,total)+f("Pilot+",pil,total)+f("Won",won,total)+'</div></div>'+
       '<div class="card flat" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:7px;padding:14px 16px">'+
       ["cold","attempting","reintro","conversation","audit","pilot","won","nurture","passed"].map(s=>'<span class="pl-st '+s+'">'+s+" "+n(s)+"</span>").join("")+'</div>'+
+      '<div class="card" style="margin-top:12px"><div style="padding:16px 18px"><div class="eyebrow">Calling activity \u00b7 last 14 days</div>'+
+      (function(){const L=state.pipeline.log;let rows='';let mx=1;const ds=[];
+        for(let i=13;i>=0;i--){const d=_add(_today(),-i);const c=(L[d]&&L[d].calls)||0;mx=Math.max(mx,c);ds.push([d,c]);}
+        ds.forEach(([d,c])=>{const dt=new Date(d+'T00:00:00');const lab=['Su','Mo','Tu','We','Th','Fr','Sa'][dt.getDay()]+' '+d.slice(5);
+          rows+='<div class="pl-fl"><div class="fl" style="min-width:64px">'+lab+'</div><div class="ft"><i style="width:'+Math.round(c/mx*100)+'%"></i></div><div class="fn">'+c+'</div></div>';});
+        return rows;})()+'</div></div>'+
+      '<div class="card" style="margin-top:12px"><div style="padding:16px 18px"><div class="eyebrow">Calls by hour (IST) \u00b7 all time</div>'+
+      (function(){const hh={};let any=false,mx=1;
+        state.pipeline.prospects.forEach(p=>{(p.history||[]).forEach(h=>{if(h.hm){any=true;const k=parseInt(h.hm.slice(0,2),10);hh[k]=(hh[k]||0)+1;mx=Math.max(mx,hh[k]);}});});
+        if(!any)return '<p class="sub" style="margin:6px 0 0">Time stamps start with your next logged call \u2014 this fills in as you dial.</p>';
+        const order=[18,19,20,21,22,23,0,1,2,3,4,5];let rows='';
+        order.forEach(k=>{const c=hh[k]||0;if(c===0&&!(k in hh))return;const lab=((k%12)||12)+(k<12?' AM':' PM');
+          rows+='<div class="pl-fl"><div class="fl" style="min-width:64px">'+lab+'</div><div class="ft"><i style="width:'+Math.round(c/mx*100)+'%"></i></div><div class="fn">'+c+'</div></div>';});
+        Object.keys(hh).map(Number).filter(k=>!order.includes(k)).sort((a,b)=>a-b).forEach(k=>{const c=hh[k];const lab=((k%12)||12)+(k<12?' AM':' PM');
+          rows+='<div class="pl-fl"><div class="fl" style="min-width:64px">'+lab+'</div><div class="ft"><i style="width:'+Math.round(c/mx*100)+'%"></i></div><div class="fn">'+c+'</div></div>';});
+        return rows;})()+'</div></div>'+
       '<button class="pl-btn g" style="width:100%;margin-top:12px;padding:12px" onclick="PL.copySummary()">Copy weekly summary</button>'+
       '<p class="sub" style="text-align:center;margin-top:8px">Outreach also feeds the Growth funnel and Coach automatically.</p>';
   }
