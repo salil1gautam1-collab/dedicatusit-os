@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>DedicatusIT — Daily Operating System</title>
 <meta name="description" content="A daily and weekly cockpit for the DedicatusIT operating laws." />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="googlebot" content="noindex, nofollow" />
 
 <!-- PWA / iPhone home screen -->
 <link rel="manifest" href="manifest.webmanifest" />
@@ -345,6 +347,13 @@
 .pl-name{font-weight:600;font-size:14.5px;color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .pl-co{color:var(--muted);font-size:12.5px;margin-top:2px}
 .pl-ctx{font-size:12px;color:var(--amber);margin-top:5px;font-weight:600}
+.pl-brief{margin-top:8px;border:1px solid #e4e2dc;border-left:3px solid #14463A;background:rgba(20,70,58,.045);border-radius:8px;padding:9px 11px}
+.pl-brief-h{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#14463A}
+.pl-brief-last{font-size:12px;color:#54594f;margin:3px 0 6px}
+.pl-brief-last.pl-dim{color:#9a9e96;font-style:italic}
+.pl-brief-l{font-size:12.5px;line-height:1.45;margin-top:4px;color:#2a2f27}
+.pl-brief-l span{display:inline-block;min-width:74px;font-weight:700;color:#14463A;vertical-align:top}
+.pl-note{flex:0 0 100%;width:100%;margin-bottom:8px;padding:8px 10px;font-size:13px;border:1px solid #e4e2dc;border-radius:8px;font-family:inherit;box-sizing:border-box}
 .pl-bdg{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:6px;padding:2px 6px;border:1px solid var(--line)}
 .pl-bdg.email{color:var(--green);background:var(--green-soft);border-color:var(--line)}
 .pl-bdg.linkedin{color:#6230B8;background:#F1ECFA;border-color:#E5DBF6}
@@ -1870,7 +1879,7 @@ const PL = (function(){
   }
 
   /* ---- outcome engine ---- */
-  function apply(p,key){const t=_today();
+  function apply(p,key,note){const t=_today();
     switch(key){
       case"noanswer":case"voicemail":{p.attempts=(p.attempts||0)+1;bump("calls");if(p.stage==="attempting")bump("followups");p.stage="attempting";p.flag="";p.slot=((p.slot||0)+1)%4;
         if(p.attempts>=7){p.stage="nurture";p.nextDate=_add(t,30);p.nextAction="Re-touch (7 attempts, no contact)";}
@@ -1902,7 +1911,7 @@ const PL = (function(){
       case"reengaged":bump("conversations");growth("conversation",p.company);p.stage="conversation";p.nextDate=_add(t,1);p.nextAction="Offer free audit";break;
       case"nur_drop":p.stage="passed";p.disposition="Dropped";p.nextDate=null;break;
     }
-    p.history.unshift({d:t,o:key});if(typeof autoOutreachHabit==="function")autoOutreachHabit();if(typeof save==="function")save();
+    p.history.unshift({d:t,o:key,n:(note||"")});if(typeof autoOutreachHabit==="function")autoOutreachHabit();if(typeof save==="function")save();
   }
 
   /* ---- today plan ---- */
@@ -1938,16 +1947,46 @@ const PL = (function(){
     hot_pilot:[["won","Won – dedicated seat","good"],["pilot_go","Pilot in progress",""],["pilot_lost","Didn't convert","bad"]],
     nurture:[["reengaged","Re-engaged","good"],["retouched","Re-touched",""],["nur_drop","Drop","bad"]]
   };
+  /* ============ CALL PLAYBOOK — EDIT THESE FREELY ============
+     Keyed by the PREVIOUS call's outcome. "cold" = first call / no history.
+     opener = what to open with; obj = a likely pushback + your line;
+     goal = the aim of THIS call. Rewrite in your own words anytime. */
+  const OPENERS={
+    cold:{opener:"Hi [name], it's Salil with DedicatusIT — I'll keep this to 30 seconds. We give MSPs dedicated offshore engineers, L1 to L4, so you add delivery capacity without adding headcount. Is now a bad time?",obj:"“We're covered.” → Fair — most owners I speak to aren't short on tools, they're short on hours. That's the gap we fill.",goal:"Earn 60 seconds and set a short intro / audit."},
+    voicemail:{opener:"Hi [name], Salil again from DedicatusIT — following up on the voicemail I left. Quick reason: dedicated remote engineers to take load off your team. Did my message reach you?",obj:"“Got it, been slammed.” → That's exactly the 5-minute conversation worth having — capacity. Better later today or tomorrow morning?",goal:"Confirm they got the VM; turn it into a real talk."},
+    noanswer:{opener:"Hi [name], Salil with DedicatusIT — tried you earlier. Two lines: we staff dedicated L1–L4 engineers for MSPs so you scale delivery without hiring. Have a minute?",obj:"“Now's not great.” → No problem, I'll be quick or grab a better slot. Mornings or afternoons usually easier?",goal:"Get past the miss; earn a first conversation."},
+    spoke_cb:{opener:"Hi [name], Salil from DedicatusIT — you'd asked me to call back around now, so here I am. Still a good moment to pick up where we left off?",obj:"“Remind me what this was?” → Of course — dedicated offshore engineers to add delivery capacity without new hires. You wanted to hear how the pod model works.",goal:"Honor the callback; advance to an audit / next step."},
+    not_now:{opener:"Hi [name], Salil at DedicatusIT — you'd mentioned timing wasn't right last time, so I'll be brief. Checking whether things have opened up to look at adding delivery capacity.",obj:"“Still not now.” → Understood, I won't push. Can I send one short case study and check back in a few weeks?",goal:"Re-open gently; if not, set a nurture date."},
+    badnum:{opener:"Hi [name], Salil with DedicatusIT — I think I had a wrong number before, glad I reached you. Quick reason: dedicated engineers for MSPs to scale delivery. Got a minute?",obj:"“How'd you get this number?” → Fair — you're listed as running delivery at [company], and that's exactly who benefits. 60 seconds?",goal:"Confirm the right contact; earn a conversation."},
+    default:{opener:"Hi [name], Salil with DedicatusIT — picking up where we left off. Dedicated L1–L4 engineers so you add capacity without hiring. Good moment?",obj:"“Send me something.” → Happy to — one question so I send the right thing: biggest delivery pinch right now, tickets or projects?",goal:"Advance the relationship one concrete step."}
+  };
+  const OUTLABEL={cold:"First call",noanswer:"No answer",voicemail:"Left voicemail",spoke_cb:"Call back requested",spoke_int:"Spoke – interested",booked:"Booked audit",not_now:"Not now",not_int:"Not interested",badnum:"Bad number"};
+  function _short(ds){if(!ds)return"";const a=String(ds).split("-");if(a.length<3)return ds;const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];return M[(+a[1]||1)-1]+" "+(+a[2]);}
+  function _esc(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+  function brief(p){
+    const n=(p.attempts||0)+1;
+    const last=(p.history&&p.history.length)?p.history[0]:null;
+    const conf=OPENERS[last?last.o:"cold"]||OPENERS.default;
+    let h='<div class="pl-brief"><div class="pl-brief-h">Call #'+n+(n===1?" · first contact":"")+'</div>';
+    if(last){const lbl=OUTLABEL[last.o]||last.o;h+='<div class="pl-brief-last">Last '+_short(last.d)+': <b>'+_esc(lbl)+'</b>'+(last.n?' — “'+_esc(last.n)+'”':"")+'</div>';}
+    else{h+='<div class="pl-brief-last pl-dim">No prior contact logged — cold open.</div>';}
+    h+='<div class="pl-brief-l"><span>Opener</span>'+_esc(conf.opener)+'</div>';
+    h+='<div class="pl-brief-l"><span>If pushed</span>'+_esc(conf.obj)+'</div>';
+    h+='<div class="pl-brief-l"><span>Goal</span>'+_esc(conf.goal)+'</div>';
+    return h+'</div>';
+  }
   function task(p,octype,ctx){
     const emp=p.employees?'<span class="pl-bdg emp">'+p.employees+' staff</span>':"";
     const warn=p.flag==="bad_number"?'<span class="pl-bdg warn">bad number</span>':"";
     const ocs=OUT[octype].map(o=>'<button class="'+o[2]+'" onclick="PL.log(\''+p.id+"','"+o[0]+"')\">"+o[1]+"</button>").join("");
+    const bf=(octype==="call")?brief(p):"";
+    const noteIn='<input class="pl-note" id="plnote-'+p.id+'" type="text" autocomplete="off" placeholder="Note — what was said (optional)" />';
     return '<div class="pl-task" id="pltask-'+p.id+'"><div class="pl-task-row"><div class="pl-task-i">'+
       '<div class="pl-name">'+p.name+" "+chBadge(p)+" "+emp+" "+warn+"</div>"+
       '<div class="pl-co">'+(p.title?p.title+" \u00b7 ":"")+p.company+(p.domain?" \u00b7 "+p.domain:"")+"</div>"+
-      tzLine(p)+(ctx?'<div class="pl-ctx">'+ctx+"</div>":"")+
+      tzLine(p)+(ctx?'<div class="pl-ctx">'+ctx+"</div>":"")+bf+
       '</div><button class="pl-btn o" onclick="PL.toggle(\''+p.id+'\')">Log</button></div>'+
-      '<div class="pl-oc" style="display:none" id="ploc-'+p.id+'">'+ocs+"</div></div>";
+      '<div class="pl-oc" style="display:none" id="ploc-'+p.id+'">'+noteIn+ocs+"</div></div>";
   }
 
   /* ---- main render ---- */
@@ -2104,7 +2143,7 @@ const PL = (function(){
     boot, render,
     sub(k){SUB=k;render();},
     toggle(id){const e=document.getElementById("ploc-"+id);if(e)e.style.display=e.style.display==="none"?"flex":"none";},
-    log(id,key){const p=P(id);if(!p)return;apply(p,key);const c=document.getElementById("pltask-"+id);if(c){c.style.transition="opacity .25s,transform .25s";c.style.opacity="0";c.style.transform="translateX(8px)";}toast(msg(key,p));setTimeout(render,260);},
+    log(id,key){const p=P(id);if(!p)return;var _nn=document.getElementById("plnote-"+id);var _note=_nn?(_nn.value||"").trim():"";apply(p,key,_note);const c=document.getElementById("pltask-"+id);if(c){c.style.transition="opacity .25s,transform .25s";c.style.opacity="0";c.style.transform="translateX(8px)";}toast(msg(key,p));setTimeout(render,260);},
     post(){bump("posts");if(typeof save==="function")save();toast("Post logged ✓");render();},
     setTz(id){const row=document.getElementById("pltz-"+id);if(!row)return;row.innerHTML=["ET","CT","MT","PT","AK","HT","INTL"].map(z=>'<button class="pl-pick" onclick="PL.applyTz(\''+id+"','"+z+"')\">"+z+"</button>").join("");},
     applyTz(id,z){const p=P(id);if(!p)return;p.tz=TZS[z]||"";p.tzl=z;if(typeof save==="function")save();toast(p.company+" → "+z);render();},
