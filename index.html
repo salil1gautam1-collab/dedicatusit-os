@@ -2079,7 +2079,7 @@ const PL = (function(){
   function prow(p){
     const tz=["ET","CT","MT","PT","AK","HT","INTL","UNK"].map(z=>'<option '+((p.tzl||"UNK")===z?"selected":"")+">"+z+"</option>").join("");
     const stg=["cold","attempting","reintro","conversation","audit","pilot","won","nurture","passed"].map(s=>'<option '+(p.stage===s?"selected":"")+">"+s+"</option>").join("");
-    return '<div class="pl-prow"><div class="pn"><b>'+p.name+'</b> '+chBadge(p)+'<div class="pc">'+(p.title?p.title+" \u00b7 ":"")+p.company+(p.loc?" \u00b7 "+p.loc:"")+(p.nextDate?" \u00b7 next "+p.nextDate:"")+'</div></div>'+
+    return '<div class="pl-prow"><div class="pn"><b>'+p.name+'</b> '+chBadge(p)+'<div class="pc">'+(p.title?p.title+" \u00b7 ":"")+p.company+(p.loc?" \u00b7 "+p.loc:"")+(p.nextDate?" \u00b7 next "+p.nextDate:"")+'</div>'+(p.disposition?'<div class="pc" style="color:#9A4A3C;font-weight:600">'+_esc(p.disposition)+((p.history&&p.history[0]&&p.history[0].n)?' \u2014 \u201C'+_esc(_short(p.history[0].n,90))+'\u201D':'')+((p.history&&p.history[0]&&p.history[0].d)?' \u00b7 '+p.history[0].d:'')+'</div>':'')+'</div>'+
       '<select class="pl-sel" onchange="PL.tzVal(\''+p.id+'\',this.value)">'+tz+'</select>'+
       '<select class="pl-sel" onchange="PL.stage(\''+p.id+'\',this.value)">'+stg+'</select></div>';
   }
